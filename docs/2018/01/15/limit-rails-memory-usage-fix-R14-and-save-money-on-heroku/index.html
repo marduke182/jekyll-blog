@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en" xml:lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Reduce Rails Memory Usage, Fix R14, Save Money on Heroku [4 Tips] </title>
+    <link rel="dns-prefetch" href="//maxcdn.bootstrapcdn.com">
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="In theory, you can run both Rails web server and Sidekiq process on one 512mb Heroku dyno. For side projects with small traffic, saving $7/month always comes in handy. Unfortunately when trying to fit two Ruby processes on one dyno you can run into memory issues. In this post, I will explain how you can limit memory usage in Rails apps.">
+    <meta name="robots" content="all">
+    <meta name="author" content="Paweł Urbanek">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/styles.css?201802222159" type="text/css">
+
+    
+      <meta name="keywords" content="ruby, rails, memory, heroku, save money, startup, optimization, full stack, r14 error">
+    
+
+    <link rel="canonical" href="https://pawelurbanek.com/2018/01/15/limit-rails-memory-usage-fix-R14-and-save-money-on-heroku/">
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed for Paweł Urbanek - Web and Mobile Developer, Full Stack Blog" href="/feed.xml" />
+
+
+    <!-- Verifications -->
+    
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_US">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Reduce Rails Memory Usage, Fix R14, Save Money on Heroku [4 Tips] ">
+    <meta property="og:description" content="In theory, you can run both Rails web server and Sidekiq process on one 512mb Heroku dyno. For side projects with small traffic, saving $7/month always comes in handy. Unfortunately when trying to fit two Ruby processes on one dyno you can run into memory issues. In this post, I will explain how you can limit memory usage in Rails apps.">
+    <meta property="og:url" content="https://pawelurbanek.com/2018/01/15/limit-rails-memory-usage-fix-R14-and-save-money-on-heroku/">
+    <meta property="og:site_name" content="Paweł Urbanek - Web and Mobile Developer, Full Stack Blog">
+    
+    <meta property="og:image" content="https://pawelurbanek.com/assets/pig-represents-saving-money-on-heroku-2d7543382abaf45f25c54acb474d389536034d92a759e0317178e6d1f3ac2f15.jpg">
+    
+
+
+    <!-- Twitter Card -->
+    
+      <meta name="twitter:card" content="summary_large_image">
+      <meta property="og:image:width" content="800">
+      <meta property="og:image:height" content="500">
+      <meta property="article:published_time" content="2018-01-15T10:00:25+01:00" />
+    
+
+    
+    <meta name="twitter:image" content="https://pawelurbanek.com/assets/pig-represents-saving-money-on-heroku-2d7543382abaf45f25c54acb474d389536034d92a759e0317178e6d1f3ac2f15.jpg">
+    
+
+    <meta name="twitter:site" content="@_pawurb" />
+    <meta name="twitter:creator" content="@_pawurb" />
+
+    <meta name="twitter:title" content="Reduce Rails Memory Usage, Fix R14 and Save Money on Heroku" />
+    <meta name="twitter:description" content="In theory, you can run both Rails web server and Sidekiq process on one 512mb Heroku dyno. For side projects with small traffic, saving $7/month always comes in handy. Unfortunately when trying to fit two Ruby processes on one dyno you can run into memory issues. In this post, I will explain how you can limit memory usage in Rails apps." />
+    <meta name="twitter:url" content="https://pawelurbanek.com/2018/01/15/limit-rails-memory-usage-fix-R14-and-save-money-on-heroku/" />
+
+    <!-- Icons -->
+    <link rel="apple-touch-icon" sizes="57x57" href="/apple-touch-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/apple-touch-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/apple-touch-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/apple-touch-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/apple-touch-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png">
+    <link rel="icon" type="image/png" href="/favicon-192x192.png" sizes="192x192">
+    <link rel="icon" type="image/png" href="/favicon-160x160.png" sizes="160x160">
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96">
+    <link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16">
+    <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
+
+
+    
+    <script type="text/javascript">
+       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+       (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+       m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+       })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+       ga('create', 'UA-34244867-12', 'auto');
+       ga('send', 'pageview');
+    </script>
+    
+
+    
+<!-- Google Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "BlogPosting",
+    "mainEntityOfPage": {
+      "@type":"WebPage",
+      "@id":"https://pawelurbanek.com/2018/01/15/limit-rails-memory-usage-fix-R14-and-save-money-on-heroku/"
+    },
+    "headline": "Reduce Rails Memory Usage, Fix R14 and Save Money on Heroku",
+    "image": {
+      "@type": "ImageObject",
+      "url": "https://pawelurbanek.com/assets/pig-represents-saving-money-on-heroku-2d7543382abaf45f25c54acb474d389536034d92a759e0317178e6d1f3ac2f15.jpg",
+      "height": 500,
+      "width": 800
+    },
+    "datePublished": "2018-01-15",
+    "dateModified": "2018-02-07",
+    "author": {
+      "@type": "Person",
+      "name": "Paweł Urbanek"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "PabloWeb Paweł Urbanek",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://pawelurbanek.com/assets/pabloweb-69223ab6871fe2232fabdd00e23d420a15170da8a9644aee5f73a422067629c4.jpg",
+        "width": 600,
+        "height": 60
+      }
+    },
+    "description": "In theory, you can run both Rails web server and Sidekiq process on one 512mb Heroku dyno. For side projects with small traffic, saving $7/month always comes in handy. Unfortunately when trying to fit two Ruby processes on one dyno you can run into memory issues. In this post, I will explain how you can limit memory usage in Rails apps.",
+    "keywords": "ruby, rails, memory, heroku, save money, startup, optimization, full stack, r14 error"
+  }
+  </script>
+
+
+</head>
+
+<body class="site">
+  
+
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      <div class='site-title'>
+        <h1 class='author-name'>
+          <a class='main-title' href="https://pawelurbanek.com">Paweł Urbanek</a>
+        </h1>
+        <br>
+        <h2 class='blog-title'>
+          <a href="https://pawelurbanek.com" class='subtitle'>Full Stack Blog</a>
+        </h2>
+      </div>
+      <nav class="site-nav">
+        
+
+
+
+
+    
+
+    
+        <a class='theme-color' href="/">Home</a>
+    
+
+
+
+
+    
+
+    
+        <a class='theme-color' href="/about">About</a>
+    
+
+
+
+
+    
+
+    
+        <a class='theme-color' href="/contact">Contact</a>
+    
+
+
+
+
+        
+          <div class="social-icons">
+  <div class="social-icons-right">
+    
+      <a class="fa fa-github" href="https://github.com/pawurb" target="_blank"></a>
+    
+    
+      <a class="fa fa-twitter" href="https://twitter.com/_pawurb" target="_blank"></a>
+    
+  </div>
+  <div class="right">
+    
+  </div>
+</div>
+<div class="clearfix"></div>
+
+        
+      </nav>
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+
+  
+    <link rel="amphtml" href="https://pawelurbanek.com/amp/2018/01/15/limit-rails-memory-usage-fix-R14-and-save-money-on-heroku">
+  
+
+
+<div class="post-header mb2">
+  <h1>Reduce Rails Memory Usage, Fix R14 and Save Money on Heroku</h1>
+  <span class="post-meta theme-color">Jan 15, 2018</span><br>
+  
+  <span class="post-meta small">
+  
+    3 minute read
+  
+  </span>
+</div>
+
+<article class="post-content">
+  <p><img class="center-image post-main-image" alt="Reduce costs on Heroku, represented by a pig image" src="/assets/pig-represents-saving-money-on-heroku-2d7543382abaf45f25c54acb474d389536034d92a759e0317178e6d1f3ac2f15.jpg" /></p>
+
+<p>In theory, you can run both Rails web server and Sidekiq process on one 512mb Heroku dyno. For side projects with small traffic, saving $7/month always comes in handy. Unfortunately when trying to fit two Ruby processes on one dyno you can run into memory issues. In this post, I will explain how you can reduce memory usage in Rails apps.</p>
+
+<p>Recently, I read a <a href="https://bilalbudhani.com/running-sidekiq-on-heroku-free-dyno/" target="_blank">great article</a> by Bilal Budhani explaining how to run Sidekiq process alongside Puma on one Heroku dyno. After applying it to <a href="https://wishlist.apki.io" target="_blank">one of my side projects</a>, I started running into those dreaded R14 errors.</p>
+
+<p><img class="center-image" alt="Heroku R14 - Memory Quota Exceeded in Ruby errors" src="/assets/R14_error-26587125dc2d34675e70602c79431a4e9f415953276fdeff86bfcf88bb1c3c36.png" /></p>
+
+<p><span class="annotation">Memory usage spiked followed by a bunch of memory errors and automatic restart</span></p>
+
+<p>I did some digging and, after a couple of optimizations memory usage charts started looking like this:</p>
+
+<p><img class="center-image" alt="Heroku R14 - Memory Quota Exceeded in Ruby fixed" src="/assets/R14_fixed-2f03942be78002ee38a8e10aa0ce798d8e4d0dd883b3c41ac23084ce5dbd37b2.png" /></p>
+
+<p><span class="annotation">Stable memory usage followed by garbage collection</span></p>
+
+<p>Here’s what I did:</p>
+
+<h2 id="put-your-gemfile-on-a-diet">Put your Gemfile on a diet</h2>
+
+<p><em>There is a Gem for that…</em> In the Ruby world, dropping in a Gem to solve a problem is usually the <em>“easiest”</em> solution. Apart from other costs, memory bloat is one that can easily get overlooked.</p>
+
+<p>The best way to check how much memory each of your gems consumes is to use <a href="https://github.com/schneems/derailed_benchmarks" target="_blank">derailed benchmarks</a>. Just add:</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">gem</span> <span class="s1">'derailed_benchmarks'</span><span class="p">,</span> <span class="ss">group: :development</span></code></pre></figure>
+
+<p>to your <code class="highlighter-rouge">Gemfile</code> and run <code class="highlighter-rouge">bundle exec derailed bundle:mem</code>.</p>
+
+<p>My project powers <a href="https://twitter.com/apps_wishlist" target="_blank">Twitter</a> and <a href="https://www.facebook.com/SmartWishlistiOS/" target="_blank">Facebook</a> bot profiles. I was surprised to find out that a popular <a href="https://github.com/sferik/twitter" class="link" target="_blank">twitter</a> gem uses over <code class="highlighter-rouge">13 MB</code> of memory on startup. First I replaced it with its lightweight alternative <a href="https://github.com/hayesdavis/grackle" target="_blank">grackle</a> (<code class="highlighter-rouge">~1 MB</code>) and finally ended up writing a custom code making a HTTP call to Twitter API. I also managed to get rid of <a href="https://github.com/arsduo/koala" target="_blank">koala</a> gem (<code class="highlighter-rouge">~2 MB</code>) in the same way.</p>
+
+<p>Another quick win was replacing <a href="https://github.com/gazay/gon" target="_blank">gon</a> gem (<code class="highlighter-rouge">~6 MB</code>) with custom JavaScript data attributes.</p>
+
+<p>Importing a couple of MBs worth of gem files to simplify making one HTTP call or preventing writing a couple of JavaScript lines should definitely be avoided.</p>
+
+<h2 id="use-jemalloc-to-reduce-rails-memory-usage">Use jemalloc to reduce Rails memory usage</h2>
+
+<p><a href="http://jemalloc.net/">jemalloc</a> is an alternative to official MRI memory allocator. On Heroku, you can add jemalloc using a <a href="https://github.com/gaffneyc/heroku-buildpack-jemalloc" class="link" target="_blank">buildpack</a>. For my app, it resulted in ~20% memory usage decrease. Just make sure to test your app with jemalloc thoroughly on a staging environment before deploying it to production.</p>
+
+<h2 id="limit-concurrency-and-workers">Limit concurrency and workers</h2>
+
+<p>For a side project with limited traffic you probably don’t need a lot of throughput anyway. You can limit memory usage by reducing Sidekiq and Puma workers and threads count. Here’s my <code class="highlighter-rouge">config/puma.rb</code> file:</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">threads_count</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">threads</span> <span class="n">threads_count</span><span class="p">,</span> <span class="n">threads_count</span>
+<span class="n">port</span>        <span class="no">ENV</span><span class="p">.</span><span class="nf">fetch</span><span class="p">(</span><span class="s2">"PORT"</span><span class="p">)</span> <span class="p">{</span> <span class="mi">3000</span> <span class="p">}</span>
+<span class="n">environment</span> <span class="no">ENV</span><span class="p">.</span><span class="nf">fetch</span><span class="p">(</span><span class="s2">"RAILS_ENV"</span><span class="p">)</span> <span class="p">{</span> <span class="s2">"production"</span> <span class="p">}</span>
+<span class="n">workers</span> <span class="mi">1</span>
+
+<span class="n">preload_app!</span>
+
+<span class="n">on_worker_boot</span> <span class="k">do</span>
+  <span class="vi">@sidekiq_pid</span> <span class="o">||=</span> <span class="n">spawn</span><span class="p">(</span><span class="s1">'bundle exec sidekiq -t 1'</span><span class="p">)</span>
+  <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span><span class="p">.</span><span class="nf">establish_connection</span> <span class="k">if</span> <span class="n">defined?</span><span class="p">(</span><span class="no">ActiveRecord</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="n">on_restart</span> <span class="k">do</span>
+  <span class="no">Sidekiq</span><span class="p">.</span><span class="nf">redis</span><span class="p">.</span><span class="nf">shutdown</span> <span class="p">{</span> <span class="o">|</span><span class="n">conn</span><span class="o">|</span> <span class="n">conn</span><span class="p">.</span><span class="nf">close</span> <span class="p">}</span>
+<span class="k">end</span>
+
+<span class="n">plugin</span> <span class="ss">:tmp_restart</span></code></pre></figure>
+
+<p>and <code class="highlighter-rouge">config/sidekiq.yml</code>:</p>
+
+<figure class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span class="nn">---</span>
+<span class="s">:concurrency</span><span class="pi">:</span> <span class="s">1</span>
+<span class="s">:queues</span><span class="pi">:</span>
+  <span class="pi">-</span> <span class="s">default</span>
+  <span class="pi">-</span> <span class="pi">[</span><span class="nv">critical</span><span class="pi">,</span> <span class="nv">100</span><span class="pi">]</span></code></pre></figure>
+
+<p>Although we specify 1 as the max number of threads, Puma can <a href="https://github.com/puma/puma#thread-pool" target="_blank">spawn up to 7 threads</a>. With those minimal settings, <a href="http://wishlist.apki.io/" target="_blank">Smart Wishlist</a> is still able to process around 100k Sidekiq jobs daily and serve both React frontend and mobile JSON API.</p>
+
+<h2 id="optimize-json-parsing">Optimize JSON parsing</h2>
+
+<p>All those Sidekiq jobs are necessary to download up to date prices from iTunes API (requests batching is on my TODO list) and send push notifications about discounts. This means there’s quite a lot of JSON parsing going on there. There is an oneline fix which can help optimize both memory usage and performance in such cases:</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">gem</span> <span class="s1">'yajl-ruby'</span><span class="p">,</span> <span class="ss">require: </span><span class="s1">'yajl/json_gem'</span></code></pre></figure>
+
+<p><a href="https://github.com/brianmario/yajl-ruby" target="_blank">yaji-ruby</a> offers a JSON gem Compatibility API, which hooks into <code class="highlighter-rouge">JSON.parse</code> calls, improving their performance and memory usage.</p>
+
+<h2 id="summary">Summary</h2>
+
+<p>Working in constrained environments is a great way to flex your programming muscles and discover new optimization techniques. In theory, you could always solve memory issues by throwing more money at your servers, but why not keep those $7 instead?</p>
+
+<p>Check out my other blog post for more tips on how to <a href="https://pawelurbanek.com/2018/02/05/optimize-rails-performance-bottleneck-with-caching-and-rack-middleware/">improve performance and reduce memory usage of Rails apps</a>.</p>
+
+
+</article>
+
+
+  <div class="share-page">
+  <div class="share-links">
+    
+      <a class="fa fa-twitter" href="https://twitter.com/intent/tweet?text=Reduce+Rails+Memory+Usage%2C+Fix+R14+and+Save+Money+on+Heroku&amp;url=https%3A%2F%2Fpawelurbanek.com%2F2018%2F01%2F15%2Flimit-rails-memory-usage-fix-R14-and-save-money-on-heroku%2F" rel="nofollow" target="_blank" title="Share on Twitter"></a>
+    
+    
+      <a class="fa fa-facebook" href="https://facebook.com/sharer.php?u=https%3A%2F%2Fpawelurbanek.com%2F2018%2F01%2F15%2Flimit-rails-memory-usage-fix-R14-and-save-money-on-heroku%2F" rel="nofollow" target="_blank" title="Share on Facebook"></a>
+    
+  </div>
+</div>
+
+
+
+
+  <div class="page-navigation">
+  
+    <a class="prev navigation-link" href="/2018/01/08/productive-laziness-optimize-your-shell-workflow/">&laquo; Productive Laziness - Optimize your Shell Workflow</a>
+
+  
+  
+    <a class="right next navigation-link" href="/2018/01/22/setup-multiple-domains-with-free-ssl-from-cloudflare/"> Multiple Domains with Free Wildcard SSL from Cloudflare &raquo;</a>
+  
+</div>
+
+<div class="post-footer">
+  <p>
+    Posted by Paweł Urbanek on Jan 15, 2018
+    <br>
+    Find me on <a class='link' target='_blank' href="https://twitter.com/_pawurb">Twitter</a> or <a class='link' target='_blank' href="https://github.com/pawurb">GitHub</a>.
+  </p>
+</div>
+
+<div class='center'>
+  <p>Subscribe if you want to be notified about new blog posts. I promise no spam.</p>
+    <div id="mc_embed_signup">
+  <form action="https://pawelurbanek.us17.list-manage.com/subscribe/post?u=185903fd35e2bd56525298439&amp;id=d8064f77fc" method="post" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form" class="validate" target="_blank" novalidate>
+      <div id="mc_embed_signup_scroll">
+
+  <div class="mc-field-group">
+    <input type="email" value="" name="EMAIL" class="required email input-form" placeholder='Email' id="mce-EMAIL">
+  </div>
+    <div id="mce-responses" class="clear">
+      <div class="response" id="mce-error-response" style="display:none"></div>
+      <div class="response" id="mce-success-response" style="display:none"></div>
+    </div>    <!-- real people should not fill this in and expect good things - do not remove this or risk form bot signups-->
+      <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_185903fd35e2bd56525298439_d8064f77fc" tabindex="-1" value=""></div>
+      <div class="clear"><input type="submit" value="Subscribe" name="subscribe" id="mc-embedded-subscribe" class="button"></div>
+      </div>
+  </form>
+  </div>
+
+</div>
+
+
+
+
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_shortname  = 'pawelurbanek';
+    var disqus_identifier = '/2018/01/15/limit-rails-memory-usage-fix-R14-and-save-money-on-heroku';
+    var disqus_title      = "Reduce Rails Memory Usage, Fix R14 and Save Money on Heroku";
+
+    (function() {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="center">
+  <div class="measure">
+    <small>
+      © Paweł Urbanek 2018
+    </small>
+  </div>
+</footer>
+
+
+  
+<!-- Fonts -->
+
+<link href='//fonts.googleapis.com/css?family=Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+<link href='//fonts.googleapis.com/css?family=Lato:900,300' rel='stylesheet' type='text/css'>
+
+
+
+  <link href="//maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" rel="stylesheet">
+
+
+</body>
+</html>

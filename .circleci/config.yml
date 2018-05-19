@@ -1,0 +1,32 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/blog
+    docker:
+      - image: circleci/ruby:2.5.0
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "90:cf:85:55:c5:25:71:dc:31:cd:1a:4c:a6:dc:38:47"
+
+      - run: gem install bundler
+      - run:
+          name: Running bundle install
+          command: bundle check --path=vendor/bundle || bundle install --path=vendor/bundle --jobs=4 --retry=3
+      - run:
+          name: Making build
+          command: jekyll build
+      - deploy:
+          name: Uploading static resource to gh page
+          command: |
+            ./scripts/circleci/deploy-ghpages.sh
+workflows:
+    version: 2
+    build_and_deploy:
+      jobs:
+        - build:
+            filters:
+              branches:
+                only:
+                  - master

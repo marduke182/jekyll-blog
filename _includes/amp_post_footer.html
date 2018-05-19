@@ -1,0 +1,24 @@
+<div class="page-navigation">
+  {% if page.prev_amp %}
+    <a class="prev navigation-link" href="/amp/{{page.prev_amp.url }}">&laquo; {{page.prev_amp.title }}</a>
+  {% else %}
+    <a class="prev" ></a>
+  {% endif %}
+  {% if page.next_amp %}
+    <a class="right next navigation-link" href="/amp/{{page.next_amp.url}}"> {{page.next_amp.title }} &raquo;</a>
+  {% endif %}
+</div>
+
+<div class="post-footer">
+  <p>
+    Posted by {{ site.author }} on {{ page.date | date: site.date_format }}
+    <br>
+    <br>
+    Find me on <a class='link' target='_blank' href="https://twitter.com/{{ site.twitter_username}}">Twitter</a> or <a class='link' target='_blank' href="https://github.com/{{ site.github_username }}">GitHub</a>.
+  </p>
+    <p>
+    This is an AMP version of this page
+    <a class='link theme-color' href="{{ page.url | remove: 'amp' }}"> click here</a>
+    to see the oryginal version and comments.
+  </p>
+</div>

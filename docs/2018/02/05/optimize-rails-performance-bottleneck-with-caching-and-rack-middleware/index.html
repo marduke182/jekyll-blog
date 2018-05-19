@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en" xml:lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Optimize Rails Performance with Caching and Rack Middleware [Tutorial] </title>
+    <link rel="dns-prefetch" href="//maxcdn.bootstrapcdn.com">
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="According to (a bit exaggerated) Pareto principle, 5% of your Rails app endpoints could account for 95% of performance issues. In this blog post I will describe how I improved a performance of my Rails application’s bottleneck endpoint by over 500% using a simple Redis caching technique and a custom Rack middleware.">
+    <meta name="robots" content="all">
+    <meta name="author" content="Paweł Urbanek">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/styles.css?201802222159" type="text/css">
+
+    
+      <meta name="keywords" content="ruby, rails, memory, heroku, save money, startup, optimization, full stack, caching, redis, performance, Active Record">
+    
+
+    <link rel="canonical" href="https://pawelurbanek.com/2018/02/05/optimize-rails-performance-bottleneck-with-caching-and-rack-middleware/">
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed for Paweł Urbanek - Web and Mobile Developer, Full Stack Blog" href="/feed.xml" />
+
+
+    <!-- Verifications -->
+    
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_US">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Optimize Rails Performance with Caching and Rack Middleware [Tutorial] ">
+    <meta property="og:description" content="According to (a bit exaggerated) Pareto principle, 5% of your Rails app endpoints could account for 95% of performance issues. In this blog post I will describe how I improved a performance of my Rails application’s bottleneck endpoint by over 500% using a simple Redis caching technique and a custom Rack middleware.">
+    <meta property="og:url" content="https://pawelurbanek.com/2018/02/05/optimize-rails-performance-bottleneck-with-caching-and-rack-middleware/">
+    <meta property="og:site_name" content="Paweł Urbanek - Web and Mobile Developer, Full Stack Blog">
+    
+    <meta property="og:image" content="https://pawelurbanek.com/assets/rails-performance-optimized-5277e2aeef07e281097345499e86ed0a58ed300b7aaf7599b06c965b3e058817.jpg">
+    
+
+
+    <!-- Twitter Card -->
+    
+      <meta name="twitter:card" content="summary_large_image">
+      <meta property="og:image:width" content="800">
+      <meta property="og:image:height" content="500">
+      <meta property="article:published_time" content="2018-02-05T10:00:55+01:00" />
+    
+
+    
+    <meta name="twitter:image" content="https://pawelurbanek.com/assets/rails-performance-optimized-5277e2aeef07e281097345499e86ed0a58ed300b7aaf7599b06c965b3e058817.jpg">
+    
+
+    <meta name="twitter:site" content="@_pawurb" />
+    <meta name="twitter:creator" content="@_pawurb" />
+
+    <meta name="twitter:title" content="Optimize Rails Performance with Redis Caching and Rack Middleware" />
+    <meta name="twitter:description" content="According to (a bit exaggerated) Pareto principle, 5% of your Rails app endpoints could account for 95% of performance issues. In this blog post I will describe how I improved a performance of my Rails application’s bottleneck endpoint by over 500% using a simple Redis caching technique and a custom Rack middleware." />
+    <meta name="twitter:url" content="https://pawelurbanek.com/2018/02/05/optimize-rails-performance-bottleneck-with-caching-and-rack-middleware/" />
+
+    <!-- Icons -->
+    <link rel="apple-touch-icon" sizes="57x57" href="/apple-touch-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/apple-touch-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/apple-touch-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/apple-touch-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/apple-touch-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png">
+    <link rel="icon" type="image/png" href="/favicon-192x192.png" sizes="192x192">
+    <link rel="icon" type="image/png" href="/favicon-160x160.png" sizes="160x160">
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96">
+    <link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16">
+    <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
+
+
+    
+    <script type="text/javascript">
+       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+       (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+       m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+       })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+       ga('create', 'UA-34244867-12', 'auto');
+       ga('send', 'pageview');
+    </script>
+    
+
+    
+<!-- Google Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "BlogPosting",
+    "mainEntityOfPage": {
+      "@type":"WebPage",
+      "@id":"https://pawelurbanek.com/2018/02/05/optimize-rails-performance-bottleneck-with-caching-and-rack-middleware/"
+    },
+    "headline": "Optimize Rails Performance with Redis Caching and Rack Middleware",
+    "image": {
+      "@type": "ImageObject",
+      "url": "https://pawelurbanek.com/assets/rails-performance-optimized-5277e2aeef07e281097345499e86ed0a58ed300b7aaf7599b06c965b3e058817.jpg",
+      "height": 500,
+      "width": 800
+    },
+    "datePublished": "2018-02-05",
+    "dateModified": "2018-02-05",
+    "author": {
+      "@type": "Person",
+      "name": "Paweł Urbanek"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "PabloWeb Paweł Urbanek",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://pawelurbanek.com/assets/pabloweb-69223ab6871fe2232fabdd00e23d420a15170da8a9644aee5f73a422067629c4.jpg",
+        "width": 600,
+        "height": 60
+      }
+    },
+    "description": "According to (a bit exaggerated) Pareto principle, 5% of your Rails app endpoints could account for 95% of performance issues. In this blog post I will describe how I improved a performance of my Rails application’s bottleneck endpoint by over 500% using a simple Redis caching technique and a custom Rack middleware.",
+    "keywords": "ruby, rails, memory, heroku, save money, startup, optimization, full stack, caching, redis, performance, Active Record"
+  }
+  </script>
+
+
+</head>
+
+<body class="site">
+  
+
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      <div class='site-title'>
+        <h1 class='author-name'>
+          <a class='main-title' href="https://pawelurbanek.com">Paweł Urbanek</a>
+        </h1>
+        <br>
+        <h2 class='blog-title'>
+          <a href="https://pawelurbanek.com" class='subtitle'>Full Stack Blog</a>
+        </h2>
+      </div>
+      <nav class="site-nav">
+        
+
+
+
+
+    
+
+    
+        <a class='theme-color' href="/">Home</a>
+    
+
+
+
+
+    
+
+    
+        <a class='theme-color' href="/about">About</a>
+    
+
+
+
+
+    
+
+    
+        <a class='theme-color' href="/contact">Contact</a>
+    
+
+
+
+
+        
+          <div class="social-icons">
+  <div class="social-icons-right">
+    
+      <a class="fa fa-github" href="https://github.com/pawurb" target="_blank"></a>
+    
+    
+      <a class="fa fa-twitter" href="https://twitter.com/_pawurb" target="_blank"></a>
+    
+  </div>
+  <div class="right">
+    
+  </div>
+</div>
+<div class="clearfix"></div>
+
+        
+      </nav>
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+
+  
+    <link rel="amphtml" href="https://pawelurbanek.com/amp/2018/02/05/optimize-rails-performance-bottleneck-with-caching-and-rack-middleware">
+  
+
+
+<div class="post-header mb2">
+  <h1>Optimize Rails Performance with Redis Caching and Rack Middleware</h1>
+  <span class="post-meta theme-color">Feb 5, 2018</span><br>
+  
+  <span class="post-meta small">
+  
+    6 minute read
+  
+  </span>
+</div>
+
+<article class="post-content">
+  <p><img class="center-image post-main-image" alt="Fast car symbolizing Ruby on Rails performance and speed" src="/assets/rails-performance-optimized-5277e2aeef07e281097345499e86ed0a58ed300b7aaf7599b06c965b3e058817.jpg" /></p>
+
+<p>According to (a bit exaggerated) Pareto principle, 5% of your Rails app endpoints could account for 95% of performance issues. In this blog post I will describe how I improved a performance of my Rails application’s bottleneck endpoint by over 500% using a simple Redis caching technique and a custom Rack middleware.</p>
+
+<p><img class="center-image" alt="Results of Rails app performance optimization benchmarks" src="/assets/rails-app-benchmark-chart-7d586e0d026c7434633b160eb204d3213b129a3c72b847898dddb820b5e46456.png" />
+<span class="annotation">Over 500% performance improvement</span></p>
+
+<p>Benchmarks were conducted using <a href="https://github.com/JoeDog/siege" target="_blank">Siege</a> on a 2015 Mac Book Pro with 16GB RAM and 2,2 GHz Intel Core i7. I’ve executed them against Rails app running locally in a production mode with a copy of a production database using Puma server with 2 workers, 16 threads each. I’ve used the following Siege settings:</p>
+
+<p><code class="highlighter-rouge">siege --time=60s --concurrent=20</code></p>
+
+<p>Read on if you’re interested in how the improvement was achieved.</p>
+
+<h2 id="before-rails-performance-optimization">Before Rails performance optimization</h2>
+
+<p>A detailed performance benchmark results before I started the whole optimization process:</p>
+
+<figure class="highlight"><pre><code class="language-text" data-lang="text">Transactions:                    5489 hits
+Availability:                  100.00 %
+Elapsed time:                   59.47 secs
+Data transferred:              868.35 MB
+Response time:                   0.22 secs
+Transaction rate:               92.30 trans/sec
+Throughput:                     14.60 MB/sec
+Concurrency:                    19.94
+Successful transactions:         5489
+Failed transactions:                0
+Longest transaction:             0.63
+Shortest transaction:            0.03</code></pre></figure>
+
+<p>I decided this endpoint would a good candidate for optimization because it was used by both landing page React frontend and all of the iOS mobile clients on startup. Also, data was the same regardless of which user requests it, so I would be able to cache one version and present it to everyone.</p>
+
+<p>One caveat was that the endpoint accepts an optional param <code class="highlighter-rouge">discounted_by</code>. Because it is a continuous param type (all values from 0.0 to 100.0 are valid) it would be impossible to cache all the potential queries. If your query accepts only one param of discrete type (e.g. <code class="highlighter-rouge">category</code>), you could consider caching all the possible results.</p>
+
+<p>I ended up caching results of the query performed without param and serve cached version to clients which did not provide <code class="highlighter-rouge">discounted_by</code> value in the request.</p>
+
+<p>If you don’t know which of your app’s endpoints could be worth optimizing then <a href="https://newrelic.com/" target="_blank">New Relic</a> and <a href="https://github.com/ankane/pghero" target="_blank">pghero</a> are great starting points for an investigation.</p>
+
+<h2 id="add-redis-cache-for-slow-active-record-queries">Add Redis cache for slow Active Record queries</h2>
+
+<p>Database level optimization techniques have its limits. Once your data set grows large and business logic obliges you to fetch data from a couple of joined tables it might be difficult to achieve desired performance in an SQL database without resorting to caching.</p>
+
+<p>If you are using Sidekiq in your project then you have Redis database already there. It is much simpler to use an existing infrastructure than having to add yet another dependency (e.g. <code class="highlighter-rouge">Memcached</code>). Redis provides a straightforward API for key-value storage. You don’t need to add any special gems to use it as your cache.</p>
+
+<p>If Heroku is your hosting provider, then <a href="https://elements.heroku.com/addons/redistogo">Redis to Go</a> is what you are probably using. Enabling direct access to Redis, in that case, is as simple as adding one file:</p>
+
+<p><code class="highlighter-rouge">config/initializers/redis.rb</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby">  <span class="nb">require</span> <span class="s1">'redis'</span>
+
+  <span class="vg">$redis</span> <span class="o">=</span> <span class="no">Redis</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="ss">url: </span><span class="no">ENV</span><span class="p">.</span><span class="nf">fetch</span><span class="p">(</span><span class="s2">"REDISTOGO_URL"</span><span class="p">))</span></code></pre></figure>
+
+<p>I am using <a href="https://github.com/ondrejbartas/sidekiq-cron" target="_blank">Sidekiq Cron</a> to update my cache entry every half an hour:</p>
+
+<p><code class="highlighter-rouge">app/jobs/cache_updater_job.rb</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">CacheUpdaterJob</span>
+  <span class="kp">include</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">Worker</span>
+  <span class="n">sidekiq_options</span> <span class="ss">queue: </span><span class="s1">'default'</span>
+
+  <span class="k">def</span> <span class="nf">perform</span>
+    <span class="n">products</span> <span class="o">=</span> <span class="no">Product</span><span class="p">.</span><span class="nf">current_promotions</span><span class="p">(</span>
+      <span class="no">Product</span><span class="o">::</span><span class="no">GOOD_DISCOUNT</span>
+    <span class="p">).</span><span class="nf">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">product</span><span class="o">|</span>
+      <span class="no">Product</span><span class="o">::</span><span class="no">Serializer</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">product</span><span class="p">).</span><span class="nf">to_json</span>
+    <span class="k">end</span>
+
+    <span class="n">json_data</span> <span class="o">=</span> <span class="p">{</span> <span class="ss">products: </span><span class="n">products</span> <span class="p">}.</span><span class="nf">to_json</span>
+    <span class="vg">$redis</span><span class="p">.</span><span class="nf">set</span><span class="p">(</span>
+      <span class="no">Product</span><span class="o">::</span><span class="no">PROMOTIONS_CACHE_KEY</span><span class="p">,</span>
+      <span class="n">json_data</span>
+    <span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></figure>
+
+<p><code class="highlighter-rouge">config/schedule.yml</code></p>
+
+<figure class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span class="na">update_promotions_cache</span><span class="pi">:</span>
+   <span class="na">cron</span><span class="pi">:</span> <span class="s2">"</span><span class="s">*/30</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*"</span>
+   <span class="na">class</span><span class="pi">:</span> <span class="s2">"</span><span class="s">CacheUpdaterJob"</span></code></pre></figure>
+
+<p>Updating cache every 30 minutes works for my app’s case. Even if you need to serve your clients an almost live data, updating the cache every couple of seconds could still be more performant then fetching it from a database for every request.</p>
+
+<p>Here’s how a Rails controller returning a cached response for the request without <code class="highlighter-rouge">discounted_by</code> param looks like:</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">API</span><span class="o">::</span><span class="no">PromotionsController</span> <span class="o">&lt;</span> <span class="no">API</span><span class="o">::</span><span class="no">BaseController</span>
+  <span class="k">def</span> <span class="nf">index</span>
+    <span class="k">if</span> <span class="n">discounted_by</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="ss">:discounted_by</span><span class="p">]</span>
+      <span class="n">products</span> <span class="o">=</span> <span class="no">Product</span><span class="p">.</span><span class="nf">current_promotions</span><span class="p">(</span><span class="n">discounted_by</span><span class="p">)</span>
+      <span class="p">.</span><span class="nf">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">product</span><span class="o">|</span>
+        <span class="no">Product</span><span class="o">::</span><span class="no">Serializer</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">product</span><span class="p">).</span><span class="nf">to_json</span>
+      <span class="k">end</span>
+      <span class="n">render</span> <span class="ss">json: </span><span class="p">{</span> <span class="ss">products: </span><span class="n">products</span> <span class="p">}</span>
+    <span class="k">else</span>
+      <span class="nb">self</span><span class="p">.</span><span class="nf">content_type</span> <span class="o">=</span> <span class="s2">"application/json"</span>
+      <span class="nb">self</span><span class="p">.</span><span class="nf">response_body</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="vg">$redis</span><span class="p">.</span><span class="nf">get</span><span class="p">(</span><span class="no">Product</span><span class="o">::</span><span class="no">PROMOTIONS_CACHE_KEY</span><span class="p">)</span> <span class="o">||</span> <span class="s2">""</span>
+      <span class="p">]</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></figure>
+
+<p>This version is ~5 times faster than the base one:</p>
+
+<figure class="highlight"><pre><code class="language-text" data-lang="text">Transactions:              27002 hits
+Availability:             100.00 %
+Elapsed time:              59.30 secs
+Data transferred:        4271.65 MB
+Response time:              0.04 secs
+Transaction rate:         455.35 trans/sec
+Throughput:                72.03 MB/sec
+Concurrency:               19.96
+Successful transactions:   27002
+Failed transactions:           0
+Longest transaction:        1.21
+Shortest transaction:       0.00</code></pre></figure>
+
+<p>Not only it eliminates a need for a database query but also reduces memory usage because you don’t need to instantiate Active Record objects. Depending on your data size even JSON serialization itself could be a severe performance overhead.</p>
+
+<p>You can also check out my other blog post for more tips on how to <a href="https://pawelurbanek.com/2018/01/15/limit-rails-memory-usage-fix-R14-and-save-money-on-heroku/">reduce memory usage in Rails apps</a>.</p>
+
+<h2 id="optimize-rails-with-rack-middleware">Optimize Rails with Rack middleware</h2>
+
+<p>Each request has to pass through all of the following Rails middlewares before it hits your application’s code:</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">use</span> <span class="no">Rack</span><span class="o">::</span><span class="no">Sendfile</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">Static</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">Executor</span>
+<span class="n">use</span> <span class="no">ActiveSupport</span><span class="o">::</span><span class="no">Cache</span><span class="o">::</span><span class="no">Strategy</span><span class="o">::</span><span class="no">LocalCache</span><span class="o">::</span><span class="no">Middleware</span>
+<span class="n">use</span> <span class="no">Rack</span><span class="o">::</span><span class="no">Runtime</span>
+<span class="n">use</span> <span class="no">Rack</span><span class="o">::</span><span class="no">MethodOverride</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">RequestId</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">RemoteIp</span>
+<span class="n">use</span> <span class="no">Rails</span><span class="o">::</span><span class="no">Rack</span><span class="o">::</span><span class="no">Logger</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">ShowExceptions</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">DebugExceptions</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">Callbacks</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">Cookies</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">Session</span><span class="o">::</span><span class="no">CookieStore</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">Flash</span>
+<span class="n">use</span> <span class="no">Rack</span><span class="o">::</span><span class="no">Head</span>
+<span class="n">use</span> <span class="no">Rack</span><span class="o">::</span><span class="no">ConditionalGet</span>
+<span class="n">use</span> <span class="no">Rack</span><span class="o">::</span><span class="no">ETag</span></code></pre></figure>
+
+<p>You can shave off a couple of milliseconds by bypassing the default stack and sending a response to client straight from your custom Rack middleware. You can do it by adding the following Rack app:</p>
+
+<p><code class="highlighter-rouge">lib/cache_middleware.rb</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">CacheMiddleware</span>
+  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+    <span class="vi">@app</span> <span class="o">=</span> <span class="n">app</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+    <span class="n">req</span> <span class="o">=</span> <span class="no">Rack</span><span class="o">::</span><span class="no">Request</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+    <span class="n">cache_path</span> <span class="o">=</span> <span class="n">req</span><span class="p">.</span><span class="nf">path</span> <span class="o">==</span> <span class="s2">"/api/promotions.json"</span>
+    <span class="n">no_param</span> <span class="o">=</span> <span class="n">req</span><span class="p">.</span><span class="nf">params</span><span class="p">[</span><span class="s2">"discounted_by"</span><span class="p">]</span> <span class="o">==</span> <span class="kp">nil</span>
+
+    <span class="k">if</span> <span class="n">cache_path</span> <span class="o">&amp;&amp;</span> <span class="n">no_param</span>
+      <span class="p">[</span>
+        <span class="mi">200</span><span class="p">,</span>
+        <span class="p">{</span><span class="s2">"Content-Type"</span> <span class="o">=&gt;</span> <span class="s2">"application/json"</span><span class="p">},</span>
+        <span class="p">[</span><span class="vg">$redis</span><span class="p">.</span><span class="nf">get</span><span class="p">(</span><span class="no">Product</span><span class="o">::</span><span class="no">PROMOTIONS_CACHE_KEY</span><span class="p">)</span> <span class="o">||</span> <span class="s2">""</span><span class="p">]</span>
+      <span class="p">]</span>
+    <span class="k">else</span>
+      <span class="vi">@app</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></figure>
+
+<p>and configuring your Rails app to insert in at the beginning of its middleware stack:</p>
+
+<p><code class="highlighter-rouge">config/environments/production.rb</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby">  <span class="n">config</span><span class="p">.</span><span class="nf">middleware</span><span class="p">.</span><span class="nf">insert_before</span> <span class="mi">0</span><span class="p">,</span> <span class="no">CacheMiddleware</span></code></pre></figure>
+
+<p>It checks if a request is supposed to hit your optimized endpoint and has no value for an optional param. If that is the case it returns the cached JSON to the client, if not it passes the request to the next middleware in the stack.</p>
+
+<p>This method is a bit extreme. It makes sense to use it only if you are experiencing a very heavy load. It also disables most of the tools which Rails provide out of the box, like cookies, session management or logging. Anyway, depending on your use case those couple of milliseconds saved could translate into serious hosting costs reduction.</p>
+
+<p>These are detailed results of benchmarks when using a custom middleware. It’s  ~20% improvement compared to <em>“cache only”</em> version:</p>
+
+<figure class="highlight"><pre><code class="language-text" data-lang="text">Transactions:               32782 hits
+Availability:              100.00 %
+Elapsed time:               59.94 secs
+Data transferred:         5186.03 MB
+Response time:               0.01 secs
+Transaction rate:          546.91 trans/sec
+Throughput:                 86.52 MB/sec
+Concurrency:                 19.97
+Successful transactions:     32782
+Failed transactions:             0
+Longest transaction:          0.16
+Shortest transaction:         0.00</code></pre></figure>
+
+<h2 id="final-remarks">Final remarks</h2>
+
+<p>To keep things simple I did not cover any of the more advanced techniques like automatic cache invalidation or using a built-in Rails cache support. Check out <a href="https://github.com/redis-store/redis-rails" target="_blank">redis-rails</a> gem and <a href="http://guides.rubyonrails.org/caching_with_rails.html" target="_blank">official guides</a> if you are interested in that. Please remember that benchmarks were conducted on a local machine so they don’t take networking overhead into account. 500% gain is what I managed to achieve in application-specific code.</p>
+
+
+</article>
+
+
+  <div class="share-page">
+  <div class="share-links">
+    
+      <a class="fa fa-twitter" href="https://twitter.com/intent/tweet?text=Optimize+Rails+Performance+with+Redis+Caching+and+Rack+Middleware&amp;url=https%3A%2F%2Fpawelurbanek.com%2F2018%2F02%2F05%2Foptimize-rails-performance-bottleneck-with-caching-and-rack-middleware%2F" rel="nofollow" target="_blank" title="Share on Twitter"></a>
+    
+    
+      <a class="fa fa-facebook" href="https://facebook.com/sharer.php?u=https%3A%2F%2Fpawelurbanek.com%2F2018%2F02%2F05%2Foptimize-rails-performance-bottleneck-with-caching-and-rack-middleware%2F" rel="nofollow" target="_blank" title="Share on Facebook"></a>
+    
+  </div>
+</div>
+
+
+
+
+  <div class="page-navigation">
+  
+    <a class="prev navigation-link" href="/2018/01/29/setup-ssl-proxy-for-insecure-browser-content-with-ruby-and-nginx/">&laquo; Simple SSL Proxy for Insecure Browser Content with Ruby or NGINX</a>
+
+  
+  
+    <a class="right next navigation-link" href="/2018/02/12/ruby-on-rails-service-objects-and-testing-in-isolation/"> Ruby on Rails Simple Service Objects and Testing in Isolation &raquo;</a>
+  
+</div>
+
+<div class="post-footer">
+  <p>
+    Posted by Paweł Urbanek on Feb 5, 2018
+    <br>
+    Find me on <a class='link' target='_blank' href="https://twitter.com/_pawurb">Twitter</a> or <a class='link' target='_blank' href="https://github.com/pawurb">GitHub</a>.
+  </p>
+</div>
+
+<div class='center'>
+  <p>Subscribe if you want to be notified about new blog posts. I promise no spam.</p>
+    <div id="mc_embed_signup">
+  <form action="https://pawelurbanek.us17.list-manage.com/subscribe/post?u=185903fd35e2bd56525298439&amp;id=d8064f77fc" method="post" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form" class="validate" target="_blank" novalidate>
+      <div id="mc_embed_signup_scroll">
+
+  <div class="mc-field-group">
+    <input type="email" value="" name="EMAIL" class="required email input-form" placeholder='Email' id="mce-EMAIL">
+  </div>
+    <div id="mce-responses" class="clear">
+      <div class="response" id="mce-error-response" style="display:none"></div>
+      <div class="response" id="mce-success-response" style="display:none"></div>
+    </div>    <!-- real people should not fill this in and expect good things - do not remove this or risk form bot signups-->
+      <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_185903fd35e2bd56525298439_d8064f77fc" tabindex="-1" value=""></div>
+      <div class="clear"><input type="submit" value="Subscribe" name="subscribe" id="mc-embedded-subscribe" class="button"></div>
+      </div>
+  </form>
+  </div>
+
+</div>
+
+
+
+
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_shortname  = 'pawelurbanek';
+    var disqus_identifier = '/2018/02/05/optimize-rails-performance-bottleneck-with-caching-and-rack-middleware';
+    var disqus_title      = "Optimize Rails Performance with Redis Caching and Rack Middleware";
+
+    (function() {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="center">
+  <div class="measure">
+    <small>
+      © Paweł Urbanek 2018
+    </small>
+  </div>
+</footer>
+
+
+  
+<!-- Fonts -->
+
+<link href='//fonts.googleapis.com/css?family=Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+<link href='//fonts.googleapis.com/css?family=Lato:900,300' rel='stylesheet' type='text/css'>
+
+
+
+  <link href="//maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" rel="stylesheet">
+
+
+</body>
+</html>

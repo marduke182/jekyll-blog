@@ -1,0 +1,10 @@
+<div class="share-page">
+  <div class="share-links">
+    {% if site.share_twitter %}
+      <a class="fa fa-twitter" href="https://twitter.com/intent/tweet?text={{ page.title | cgi_escape }}&amp;url={{ site.url | cgi_escape }}{{ page.url | cgi_escape }}" rel="nofollow" target="_blank" title="{{ site.text.share_buttons.twitter }}"></a>
+    {% endif %}
+    {% if site.share_facebook %}
+      <a class="fa fa-facebook" href="https://facebook.com/sharer.php?u={{ site.url | cgi_escape }}{{ page.url | cgi_escape }}" rel="nofollow" target="_blank" title="{{ site.text.share_buttons.facebook }}"></a>
+    {% endif %}
+  </div>
+</div>

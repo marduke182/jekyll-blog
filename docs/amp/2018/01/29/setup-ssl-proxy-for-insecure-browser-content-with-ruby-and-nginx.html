@@ -1,0 +1,569 @@
+<!doctype html>
+<html amp lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Simple SSL Proxy for Insecure Browser Content with Ruby or NGINX</title>
+    <link rel="canonical" href="https://pawelurbanek.com/2018/01/29/setup-ssl-proxy-for-insecure-browser-content-with-ruby-and-nginx/" />
+    <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
+    <style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>
+
+    <link href='https://fonts.googleapis.com/css?family=Merriweather:900,900italic,300,300italic' rel='stylesheet'>
+    <link href='https://fonts.googleapis.com/css?family=Lato:900,300' rel='stylesheet'>
+    <style amp-custom>
+       /** Syntax highlighting styles */
+.highlight { background: #fff; }
+.highlighter-rouge .highlight { background: #eef; }
+.highlight .c { color: #998; font-style: italic; }
+.highlight .err { color: #a61717; background-color: #e3d2d2; }
+.highlight .k { font-weight: bold; }
+.highlight .o { font-weight: bold; }
+.highlight .cm { color: #998; font-style: italic; }
+.highlight .cp { color: #999; font-weight: bold; }
+.highlight .c1 { color: #998; font-style: italic; }
+.highlight .cs { color: #999; font-weight: bold; font-style: italic; }
+.highlight .gd { color: #000; background-color: #fdd; }
+.highlight .gd .x { color: #000; background-color: #faa; }
+.highlight .ge { font-style: italic; }
+.highlight .gr { color: #a00; }
+.highlight .gh { color: #999; }
+.highlight .gi { color: #000; background-color: #dfd; }
+.highlight .gi .x { color: #000; background-color: #afa; }
+.highlight .go { color: #888; }
+.highlight .gp { color: #555; }
+.highlight .gs { font-weight: bold; }
+.highlight .gu { color: #aaa; }
+.highlight .gt { color: #a00; }
+.highlight .kc { font-weight: bold; }
+.highlight .kd { font-weight: bold; }
+.highlight .kp { font-weight: bold; }
+.highlight .kr { font-weight: bold; }
+.highlight .kt { color: #458; font-weight: bold; }
+.highlight .m { color: #099; }
+.highlight .s { color: #d14; }
+.highlight .na { color: #008080; }
+.highlight .nb { color: #0086B3; }
+.highlight .nc { color: #458; font-weight: bold; }
+.highlight .no { color: #008080; }
+.highlight .ni { color: #800080; }
+.highlight .ne { color: #900; font-weight: bold; }
+.highlight .nf { color: #900; font-weight: bold; }
+.highlight .nn { color: #555; }
+.highlight .nt { color: #000080; }
+.highlight .nv { color: #008080; }
+.highlight .ow { font-weight: bold; }
+.highlight .w { color: #bbb; }
+.highlight .mf { color: #099; }
+.highlight .mh { color: #099; }
+.highlight .mi { color: #099; }
+.highlight .mo { color: #099; }
+.highlight .sb { color: #d14; }
+.highlight .sc { color: #d14; }
+.highlight .sd { color: #d14; }
+.highlight .s2 { color: #d14; }
+.highlight .se { color: #d14; }
+.highlight .sh { color: #d14; }
+.highlight .si { color: #d14; }
+.highlight .sx { color: #d14; }
+.highlight .sr { color: #009926; }
+.highlight .s1 { color: #d14; }
+.highlight .ss { color: #990073; }
+.highlight .bp { color: #999; }
+.highlight .vc { color: #008080; }
+.highlight .vg { color: #008080; }
+.highlight .vi { color: #008080; }
+.highlight .il { color: #099; }
+
+.icon > svg { display: inline-block; width: 16px; height: 16px; vertical-align: middle; }
+.icon > svg path { fill: #828282; }
+
+amp-img { background-color: grey; }
+
+.cf:after { content: ""; display: table; clear: both; }
+
+main { display: block; }
+
+body { font-family: "Lato", "Helvetica Neue", "Open Sans", Arial, Helvetica, sans-serif; margin: 0; padding: 0; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; -moz-font-feature-settings: "liga=1, dlig=1"; -ms-font-feature-settings: "liga", "dlig"; -webkit-font-feature-settings: "liga", "dlig"; -o-font-feature-settings: "liga", "dlig"; font-feature-settings: "liga", "dlig"; }
+
+.site-header { position: relative; width: 100%; max-width: 700px; margin: 16px auto 0 auto; -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; }
+@media only screen and (max-width: 800px) { .site-header { padding: 0 16px; } }
+.site-header .page-links { display: block;  font-weight: 400; font-style: normal; font-size: 18px; line-height: 30px; }
+.site-header .page-links a { text-decoration: none; }
+
+.blog-header { width: 100%; max-width: 700px; margin: 0 auto; position: relative; padding: 0; -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; }
+.blog-header .blog-title { margin-bottom: 8px; font-size: 50px; font-weight: 700; letter-spacing: -2px; outline: 0; line-height: 50px; word-break: break-word; color: #333333; }
+.blog-header .blog-description { font-size: 28px; margin: 0 0 20px; padding: 0; line-height: 1.2; color: #666666; font-weight: 300; }
+
+.content { width: 100%; max-width: 700px; margin: 25px auto 0 auto; -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; }
+@media only screen and (max-width: 800px) { .content { padding: 0 16px; } }
+.content article { padding: 20px 0; border-bottom: 1px solid #f2f2f0; }
+.content article:last-child { border-bottom: 0px; }
+.content article .post-title { letter-spacing: -0.02em; font-weight: 700; font-style: normal; display: block; font-size: 36px; line-height: 1.15; margin: 0 0; }
+.content article .post-title a { text-decoration: none; color: #333332; }
+.content article .post-title a:hover { text-decoration: none; }
+.content article .post-excerpt { letter-spacing: -0.02em; font-weight: 300; font-style: normal; font-size: 20px; line-height: 1.59; color: #666665; }
+.content article .post-meta { font-size: 14px; color: #b3b3b1; line-height: 30px; }
+.content article .post-meta a { color: #b3b3b1; text-decoration: none; }
+.content article .post-meta a:hover { text-decoration: underline; }
+
+.post-template .content { max-width: 700px; }
+
+.index-headline { border-top: 1px solid #dededc; margin: 0; padding: 16px 0; }
+.index-headline span { color: #b3b3b1; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+
+.pagination { text-align: center; padding: 16px 0 0; font-size: 12px; }
+.pagination a { color: #999999; text-decoration: none; }
+.pagination a:hover { color: #333333; }
+
+.site-footer { margin: 0 auto; padding: 48px 0; width: 100%; max-width: 700px; font-size: 12px; text-align: center; color: #999999; line-height: 17.6px; }
+.site-footer a { color: #666666; text-decoration: none; }
+.site-footer a:hover { color: #333333; }
+
+.post .post-meta { font-family: "Lato", "Helvetica Neue", "Open Sans", Arial, Helvetica, sans-serif; }
+.post .post-title { font-weight: 700; font-style: normal; letter-spacing: -0.04em; font-size: 50px; line-height: 1.1; color: #333332; margin-bottom: 50px; }
+.post .author-image { background-image: url(/amplify//assets/images/author.jpg); display: inline-block; width: 30px; height: 30px; line-height: 30px; margin-right: 8px; margin-bottom: -10px; float: left; background-size: cover; border-radius: 100%; text-indent: -9999px; }
+.post .post-meta-text { color: #b3b3b1; letter-spacing: -0.02em; font-weight: 400; font-style: normal; font-size: 14px; overflow: hidden; font-family: "Lato", "Helvetica Neue", "Open Sans", Arial, Helvetica, sans-serif; white-space: nowrap; text-overflow: ellipsis; }
+.post .post-content { width: 100%; font-family: "Merriweather",Georgia, Cambria, "Times New Roman", Times, "Lora", serif; color: #333333; }
+.post .post-content h1, .post .post-content h2, .post .post-content h3 { font-family: "Lato", "Helvetica Neue", "Open Sans", Arial, Helvetica, sans-serif; }
+.post .post-content h3, .post .post-content h4, .post .post-content h5, .post .post-content h6 { letter-spacing: -0.02em; font-weight: 700; font-style: normal; font-size: 24px; line-height: 1.3; margin-top: 50px; margin-bottom: 0px; font-family: "Lato", "Helvetica Neue", "Open Sans", Arial, Helvetica, sans-serif; }
+.post .post-content h3 { font-size: 36px; }
+.post .post-content h2, .post .post-content h1 { letter-spacing: -0.02em; font-weight: 700; font-style: normal; font-size: 42px; line-height: 1.2; margin-top: 50px; margin-bottom: 0px; }
+.post .post-content p { font-weight: 400; font-style: normal; font-size: 22px; line-height: 1.59; letter-spacing: -.002em; margin-top: 30px; margin-bottom: 0; color: #333333; -webkit-hyphens: auto; -moz-hyphens: auto; hyphens: auto; }
+.post .post-content a { color: #333333; text-decoration: underline; }
+.post .post-content amp-img, .post .post-content amp-youtube { margin-top: 30px; }
+.post .post-content figure { margin: 0; padding: 0 0 30px; }
+.post .post-content figcaption { font-weight: 400; font-style: italic; font-size: 16px; line-height: 1.3; color: #666665; outline: 0; z-index: 300; text-align: center; }
+.post .post-content hr { border: 0; padding: 0; display: block; width: 15%; margin: 30px auto; border: 0px solid #dddddd; border-top: 1px solid #dddddd; }
+.post .post-content blockquote { margin: 0 0 30px; margin-left: -26px; border-left: 3px solid #57ad68; padding-left: 20px; }
+.post .post-content blockquote p { letter-spacing: 0.01rem; font-weight: 400; mborder-left: 3px solid #57ad68; mpadding-left: 20px; mmargin-left: -26px; padding-bottom: 3px; }
+.post .post-content ul, .post .post-content ol { padding: 0 0 30px; margin: 0; }
+.post .post-content li { padding: 0; font-weight: 400; font-style: normal; font-size: 23px; line-height: 30px; margin-left: 30px; margin-bottom: 12px; padding-top: 2px; }
+.post .post-content li p { padding: 0 0 1.618rem; }
+.post .post-content ol li { list-style-type: decimal; }
+.post .bottom-teaser { padding: 50px 0 0 0; font-family: "Helvetica Neue", "Open Sans", Arial, Helvetica, sans-serif; }
+.post .bottom-teaser hr { border: 0; padding: 0; display: block; width: 15%; margin: 16px 0 16px 100px; border: 0px solid #dddddd; border-top: 1px solid #dddddd; }
+.post .bottom-teaser .isLeft { float: left; width: 47%; -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; }
+@media only screen and (max-width: 800px) { .post .bottom-teaser .isLeft { width: 100%; padding-bottom: 32px; } }
+.post .bottom-teaser .isLeft .bio { margin-top: 18px; margin-bottom: 18px; }
+.post .bottom-teaser .isLeft .username { margin-left: 4px; margin-right: 18px; margin-bottom: 18px; }
+.post .bottom-teaser .isLeft .index-headline { padding-bottom: 32px; }
+.post .bottom-teaser .isLeft a { color: black; text-decoration: none; }
+.post .bottom-teaser .isLeft a:hover { color: #333333; text-decoration: underline; }
+.post .bottom-teaser .isLeft .author-image { display: block; width: 80px; height: 80px; float: left; background-size: cover; border-radius: 100%; text-indent: -9999px; }
+.post .bottom-teaser .isLeft h4 { font-size: 18px; line-height: 1.1; font-weight: 700; padding: 0; margin: 0; padding-left: 100px; }
+.post .bottom-teaser .isLeft p { font-size: 14px; line-height: 1.3; font-weight: 400; padding: 0; margin: 0; padding-left: 100px; }
+.post .bottom-teaser .isLeft p.published { color: #999999; }
+.post .bottom-teaser .isRight { float: right; width: 47%; -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; }
+@media only screen and (max-width: 800px) { .post .bottom-teaser .isRight { width: 100%; } }
+.post .bottom-teaser .isRight .index-headline { padding-bottom: 32px; }
+.post .bottom-teaser .isRight .site-footer { margin: 0; padding: 0; color: #333333; text-align: left; font-size: 14px; line-height: 1.3; color: #999999; }
+.post .bottom-teaser .isRight .site-footer a { color: #333333; text-decoration: none; }
+.post .bottom-teaser .isRight .site-footer a:hover { text-decoration: underline; }
+.post .bottom-teaser .isRight .site-footer .poweredby { display: block; padding-bottom: 18px; font-weight: 700; color: #333333; }
+
+.share { text-align: right; padding: 20px 0 0; }
+.share a { text-decoration: none; color: #bbbbbb; padding-left: 12px; }
+.share a .hidden { display: none; }
+.share a:hover { color: #333333; }
+
+pre, code { font-size: 15px; border: 1px solid #e8e8e8; border-radius: 3px; background-color: #eeeeff; }
+
+code { padding: 1px 5px; }
+
+pre { padding: 8px 12px; overflow-x: scroll; }
+pre > code { border: 0; padding-right: 0; padding-left: 0; }
+
+amp-img {
+  text-align: center;
+}
+
+.page-link.theme-color {
+  opacity: 0.90;
+  color: #ff6200;
+}
+
+code.highlighter-rouge {
+  word-wrap: break-word;
+}
+
+.post a {
+  color: #333;
+  border-bottom: 1px solid;
+  text-decoration: none;
+}
+
+.post a, .post a:link, .post a:visited {
+  background-image: none;
+  color: #333;
+  text-decoration: none;
+}
+
+.site-header .page-links{
+  font-size: 1.2em;
+}
+
+.page-link {
+  padding: 0px 5px 0px 5px;
+}
+
+.site-header {
+  padding-bottom: 10px;
+}
+
+.link {
+  color: #333;
+  border-bottom: 1px solid;
+  text-decoration: none;
+}
+
+.author-header h2 {
+  margin-bottom: 10px;
+}
+
+.author-header p {
+  margin-top: 5px;
+  font-family: "Merriweather", Georgia, Cambria, "Times New Roman", Times, "Lora", serif;
+  font-size: 1.2em;
+  opacity: 0.90;
+  color: #ff6200;
+}
+
+.site-header {
+  text-align: center;
+}
+
+.content .post {
+  padding-top: 0px;
+}
+
+.site-header .page-links {
+  font-family: "Merriweather", Georgia, Cambria, "Times New Roman", Times, "Lora", serif;
+  font-size: 1.2em;
+}
+
+.post a.theme-color {
+  opacity: 0.90;
+  color: #ff6200;
+}
+
+a.theme-color {
+  opacity: 0.90;
+  color: #ff6200;
+}
+
+.page-navigation {
+  display: block;
+  width: auto;
+  overflow: hidden;
+}
+
+.page-navigation a {
+  display: block;
+  width: 50%;
+  float: left;
+  margin: 1em 0;
+}
+
+.navigation-link {
+  color: #333;
+  text-decoration: underline;
+}
+
+.page-navigation .next {
+  text-align: right;
+}
+
+body p, body a {
+  line-height: 1.7;
+  font-family: "Merriweather", Georgia, Cambria, "Times New Roman", Times, "Lora", serif;
+
+}
+
+    </style>
+    <script async src="https://cdn.ampproject.org/v0.js"></script>
+    <script async custom-element="amp-analytics" src="https://cdn.ampproject.org/v0/amp-analytics-0.1.js"></script>
+
+    
+<!-- Google Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "BlogPosting",
+    "mainEntityOfPage": {
+      "@type":"WebPage",
+      "@id":"https://pawelurbanek.comamp/2018/01/29/setup-ssl-proxy-for-insecure-browser-content-with-ruby-and-nginx"
+    },
+    "headline": "Simple SSL Proxy for Insecure Browser Content with Ruby or NGINX",
+    "image": {
+      "@type": "ImageObject",
+      "url": "https://pawelurbanek.com/assets/ssl-certificate-lock-3d84ed9f9cc18d8f0384e029142efe93e15d39ac08ae08e69d063573510c21c1.jpg",
+      "height": 500,
+      "width": 800
+    },
+    "datePublished": "2018-01-29",
+    "dateModified": "2018-02-01",
+    "author": {
+      "@type": "Person",
+      "name": "Paweł Urbanek"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "PabloWeb Paweł Urbanek",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://pawelurbanek.com/assets/pabloweb-69223ab6871fe2232fabdd00e23d420a15170da8a9644aee5f73a422067629c4.jpg",
+        "width": 600,
+        "height": 60
+      }
+    },
+    "description": "SSL protection is becoming de facto standard in web and mobile development. One potential problem is that website could be served via a secure SSL connection and still displayed as insecure by most of the modern browsers. It's enough that at least one of its resources is served without SSL. In this blog post, I will explain how to setup a simple Ruby and NGINX server to work as an SSL proxy for insecure content and describe some basic streaming techniques.",
+    "keywords": "ssl proxy, heroku, cloudflare, cloudfront, aws, s3, insecure content, lets encrypt, ruby on rails, ruby, web development, mozilla"
+  }
+  </script>
+
+
+  </head>
+  <body>
+  <amp-analytics type="googleanalytics">
+    <script type="application/json">
+    {
+      "vars": {
+        "account": "UA-34244867-12"
+      },
+      "triggers": {
+        "trackPageview": {
+          "on": "visible",
+          "request": "pageview"
+        }
+      }
+    }
+    </script>
+  </amp-analytics>
+
+
+<main class="content" role="main">
+<header class="site-header">
+  <div class='author-header'>
+    <h2>Paweł Urbanek</h2>
+    <p class='theme-color'>Full Stack Blog</p>
+  </div>
+   <div class="page-links theme-color">
+     <a class="page-link theme-color" href="/">Home</a>
+     <a class="page-link theme-color" href="/about">About</a>
+     <a class="page-link theme-color" href="/contact">Contact</a>
+   </div>
+</header>
+<article class="post">
+  <h1 class="blog-title">
+    Simple SSL Proxy for Insecure Browser Content with Ruby or NGINX
+  </h1>
+  <p>
+    This is an AMP version of this page
+    <a class='theme-color' href="/2018/01/29/setup-ssl-proxy-for-insecure-browser-content-with-ruby-and-nginx"> click here</a>
+    to see the oryginal version.
+  </p>
+  <p><amp-img class="center-image post-main-image" alt="Lock represents a secure SSL certificate" src="/assets/ssl-certificate-lock-3d84ed9f9cc18d8f0384e029142efe93e15d39ac08ae08e69d063573510c21c1.jpg" width="800" height="500" layout="responsive"><noscript><img class="center-image post-main-image" alt="Lock represents a secure SSL certificate" src="/assets/ssl-certificate-lock-3d84ed9f9cc18d8f0384e029142efe93e15d39ac08ae08e69d063573510c21c1.jpg" width="800" height="500"></noscript></amp-img></p>
+
+<p>SSL protection is becoming de facto standard in web and mobile development. One potential problem is that website could be served via a secure SSL connection and still displayed as insecure by most of the modern browsers. It’s enough that at least one of its resources is served without SSL. In this blog post, I will explain how to setup Ruby and NGINX server to work as an SSL proxy for insecure content and describe some basic streaming techniques.</p>
+
+<p><amp-img class="center-image" alt="Insecure browser content warning in URL bar" src="/assets/insecure-browser-content-alert1-46d14256a8c9b097e9c261ce2fa4ebcdef811f48eb141a70603f987878190363.png" width="400" height="400" layout="responsive"><noscript><img class="center-image" alt="Insecure browser content warning in URL bar" src="/assets/insecure-browser-content-alert1-46d14256a8c9b097e9c261ce2fa4ebcdef811f48eb141a70603f987878190363.png" width="400" height="400"></noscript></amp-img></p>
+
+<p><amp-img class="center-image" alt="Insecure browser content warning in developer console" src="/assets/insecure-browser-content-alert2-27444ef96123d6f54b6eaf32658296e8277af1eb161b1c3dc5a036f74c6ec011.png" width="1202" height="124" layout="responsive"><noscript><img class="center-image" alt="Insecure browser content warning in developer console" src="/assets/insecure-browser-content-alert2-27444ef96123d6f54b6eaf32658296e8277af1eb161b1c3dc5a036f74c6ec011.png" width="1202" height="124"></noscript></amp-img>
+<span class="annotation">Developer console and URL bar display insecure content warnings on <a class="link-grey" href="https://wishlist.apki.io" target="_blank"> https://wishlist.apki.io</a>.</span></p>
+
+<p>Until recently iTunes Store pages were displayed as insecure in the browsers because of <code class="highlighter-rouge">http</code> image assets. At the time of writing this blog post, iTunes API does not officially<sup id="fnref:1"><a href="#fn:1" class="footnote">1</a></sup> provide image assets via SSL.</p>
+
+<p>You can check yourself:</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="nb">require</span> <span class="s2">"open-uri"</span>
+<span class="nb">require</span> <span class="s2">"json"</span>
+
+<span class="no">JSON</span><span class="p">.</span><span class="nf">parse</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s2">"https://itunes.apple.com/lookup?id=1201642309"</span><span class="p">).</span><span class="nf">read</span><span class="p">)[</span><span class="s2">"results"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"screenshotUrls"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="o">=&gt;</span> <span class="s2">"http://is4.mzstatic.com/image/thumb/Purple128/v4/50/b6/59/50b65977-5605-4cf3-eee6-6ff350a9c9c4/source/406x228bb.jpg"</span></code></pre></figure>
+
+<p>If you want to display this kind of insecure asset<sup id="fnref:2"><a href="#fn:2" class="footnote">2</a></sup> on your webpage without browser warnings, here’s what you can do:</p>
+
+<h2 id="download-assets-and-serve-them-via-amazon-s3">Download assets and serve them via Amazon S3</h2>
+
+<p>You could download all the required assets to deliver them via a secure connection. In this case <a href="https://aws.amazon.com/s3/" target="_blank">Amazon S3</a> with <a href="https://aws.amazon.com/cloudfront/" target="_blank">CloudFront</a> could serve you well. An advantage of this approach is that traffic does not go through your servers, and assets can be cached using CloudFront CDN. Unfortunately, you have to take care of updating assets yourself (app icons could change at any time), and pay for all the bandwidth.</p>
+
+<h2 id="down-gem-for-streaming-support">“down” gem for streaming support</h2>
+
+<p>Each of the following examples uses <a href="https://github.com/janko-m/down" target="_blank">down gem</a>. It provides a simple API for working with file downloads and supports more advanced techniques like streaming and caching. It also has a small memory footprint of less the <code class="highlighter-rouge">0.4 MB</code> on load.</p>
+
+<h2 id="use-rails-app-as-an-ssl-proxy">Use Rails app as an SSL proxy</h2>
+
+<p>Another solution would be to proxy an asset request through a Rails-based server. In that case, a Rails app downloads an asset and sends it to the browser via a secure connection. You would need to include an asset location as a parameter of the request. Here’s how a simple Rails controller implementation could look like:</p>
+
+<p><code class="highlighter-rouge">app/config/routes.rb</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby">  <span class="n">get</span> <span class="s2">"/"</span><span class="p">,</span> <span class="ss">to: </span><span class="s2">"files#show"</span></code></pre></figure>
+
+<p><code class="highlighter-rouge">app/controllers/files_controller.rb</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="nb">require</span> <span class="s2">"down"</span>
+
+<span class="k">class</span> <span class="nc">FilesController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+  <span class="k">def</span> <span class="nf">show</span>
+    <span class="n">data_source</span> <span class="o">=</span> <span class="no">Down</span><span class="p">.</span><span class="nf">download</span><span class="p">(</span><span class="n">params</span><span class="p">.</span><span class="nf">fetch</span><span class="p">(</span><span class="ss">:target</span><span class="p">))</span>
+    <span class="n">send_data</span> <span class="n">data_source</span><span class="p">.</span><span class="nf">read</span><span class="p">,</span> <span class="ss">type: </span><span class="n">data_source</span><span class="p">.</span><span class="nf">content_type</span><span class="p">,</span> <span class="ss">disposition: </span><span class="s2">"inline"</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></figure>
+
+<p>Then you could access the asset using the following URL:</p>
+
+<p><code class="highlighter-rouge">https://yourapp.com?target=http://is4.mzstatic.com/image/thumb/Purple128/v4/50/b6/59/50b65977-5605-4cf3-eee6-6ff350a9c9c4/source/406x228bb.jpg</code></p>
+
+<h3 id="streaming-for-large-assets">Streaming for large assets</h3>
+
+<p>When dealing with a larger asset a better idea would be to stream it to client part by part. To do it you need to assign an object responding to <code class="highlighter-rouge">each</code> method to <code class="highlighter-rouge">response_body</code> controller property:</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="nb">require</span> <span class="s2">"down"</span>
+
+<span class="k">class</span> <span class="nc">FilesController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+  <span class="no">CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">128</span> <span class="c1"># 128 KB</span>
+
+  <span class="k">def</span> <span class="nf">show</span>
+    <span class="n">data_source</span> <span class="o">=</span> <span class="no">Down</span><span class="p">.</span><span class="nf">open</span><span class="p">(</span><span class="n">params</span><span class="p">.</span><span class="nf">fetch</span><span class="p">(</span><span class="ss">:target</span><span class="p">))</span>
+    <span class="nb">self</span><span class="p">.</span><span class="nf">content_type</span> <span class="o">=</span> <span class="n">data_source</span><span class="p">.</span><span class="nf">data</span><span class="p">.</span><span class="nf">fetch</span><span class="p">(</span><span class="ss">:headers</span><span class="p">).</span><span class="nf">fetch</span><span class="p">(</span><span class="s2">"Content-Type"</span><span class="p">)</span>
+    <span class="nb">self</span><span class="p">.</span><span class="nf">response_body</span> <span class="o">=</span> <span class="no">Enumerator</span><span class="p">.</span><span class="nf">new</span> <span class="k">do</span> <span class="o">|</span><span class="n">body</span><span class="o">|</span>
+      <span class="k">while</span> <span class="n">data_source</span><span class="p">.</span><span class="nf">eof?</span> <span class="o">==</span> <span class="kp">false</span>
+        <span class="n">body</span> <span class="o">&lt;&lt;</span> <span class="n">data_source</span><span class="p">.</span><span class="nf">read</span><span class="p">(</span><span class="no">CHUNK_SIZE</span><span class="p">)</span>
+      <span class="k">end</span>
+      <span class="n">data_source</span><span class="p">.</span><span class="nf">close</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></figure>
+
+<p>An advantage of this approach is that in case of large assets, they would not need to be instantiated into memory all at once. It’s an equivalent of using <code class="highlighter-rouge">File.readlines</code> instead of <code class="highlighter-rouge">File.read</code> when working with files. Depending on your use case you could play around with <code class="highlighter-rouge">CHUNK_SIZE</code> constant value.</p>
+
+<p>You can also check out my other blog post for more tips on how to <a href="https://pawelurbanek.com/2018/01/15/limit-rails-memory-usage-fix-R14-and-save-money-on-heroku/">reduce memory usage in Rails apps</a>.</p>
+
+<h2 id="use-ruby-rack-app-as-an-ssl-proxy">Use Ruby Rack app as an SSL proxy</h2>
+
+<p>You could improve performance by dropping Rails altogether and using a barebones Rack app to serve the asset. Here’s a basic Rack server implementation:</p>
+
+<p><code class="highlighter-rouge">config.ru</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="nb">require</span> <span class="s2">"down"</span>
+
+<span class="n">run</span> <span class="no">Proc</span><span class="p">.</span><span class="nf">new</span> <span class="p">{</span> <span class="o">|</span><span class="n">env</span><span class="o">|</span>
+  <span class="n">req</span> <span class="o">=</span> <span class="no">Rack</span><span class="o">::</span><span class="no">Request</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+  <span class="n">data_source</span> <span class="o">=</span> <span class="no">Down</span><span class="p">.</span><span class="nf">download</span><span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="nf">params</span><span class="p">.</span><span class="nf">fetch</span><span class="p">(</span><span class="s2">"target"</span><span class="p">))</span>
+  <span class="p">[</span>
+    <span class="mi">200</span><span class="p">,</span>
+     <span class="p">{</span>
+       <span class="s2">"Content-Type"</span> <span class="o">=&gt;</span> <span class="n">data_source</span><span class="p">.</span><span class="nf">content_type</span><span class="p">,</span>
+       <span class="s2">"Content-Length"</span> <span class="o">=&gt;</span> <span class="n">data_source</span><span class="p">.</span><span class="nf">size</span><span class="p">,</span>
+     <span class="p">},</span>
+     <span class="p">[</span><span class="n">data_source</span><span class="p">.</span><span class="nf">read</span><span class="p">]</span>
+  <span class="p">]</span>
+<span class="p">}</span></code></pre></figure>
+<p><span class="annotation">You can run Rack apps with a <i>rackup</i> command</span></p>
+
+<h3 id="assets-streaming-with-rack">Assets streaming with Rack</h3>
+
+<p>Here is how you could send an asset part by part using <code class="highlighter-rouge">Rack::Chunked</code> middleware:</p>
+
+<p><code class="highlighter-rouge">config.ru</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="nb">require</span> <span class="s2">"down"</span>
+
+<span class="k">class</span> <span class="nc">App</span>
+  <span class="no">CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">128</span> <span class="c1"># 128 KB</span>
+
+  <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+    <span class="n">req</span> <span class="o">=</span> <span class="no">Rack</span><span class="o">::</span><span class="no">Request</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+    <span class="vi">@data_source</span> <span class="o">=</span> <span class="no">Down</span><span class="p">.</span><span class="nf">open</span><span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="nf">params</span><span class="p">.</span><span class="nf">fetch</span><span class="p">(</span><span class="s2">"target"</span><span class="p">))</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="vi">@data_source</span><span class="p">.</span><span class="nf">data</span><span class="p">.</span><span class="nf">fetch</span><span class="p">(</span><span class="ss">:headers</span><span class="p">)</span>
+    <span class="p">[</span>
+      <span class="mi">200</span><span class="p">,</span>
+      <span class="p">{</span>
+        <span class="s2">"Content-Type"</span> <span class="o">=&gt;</span> <span class="n">headers</span><span class="p">.</span><span class="nf">fetch</span><span class="p">(</span><span class="s2">"Content-Type"</span><span class="p">),</span>
+        <span class="s2">"Content-Encoding"</span> <span class="o">=&gt;</span> <span class="s2">"Chunked"</span>
+      <span class="p">},</span>
+      <span class="nb">self</span>
+    <span class="p">]</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">each</span>
+    <span class="k">while</span> <span class="vi">@data_source</span><span class="p">.</span><span class="nf">eof?</span> <span class="o">==</span> <span class="kp">false</span>
+      <span class="k">yield</span> <span class="vi">@data_source</span><span class="p">.</span><span class="nf">read</span><span class="p">(</span><span class="no">CHUNK_SIZE</span><span class="p">)</span>
+    <span class="k">end</span>
+    <span class="vi">@data_source</span><span class="p">.</span><span class="nf">close</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="n">use</span> <span class="no">Rack</span><span class="o">::</span><span class="no">Chunked</span>
+<span class="n">run</span> <span class="no">App</span><span class="p">.</span><span class="nf">new</span></code></pre></figure>
+
+<h2 id="use-nginx-as-an-ssl-proxy">Use NGINX as an SSL proxy</h2>
+
+<p>A different solution would be using an NGINX to proxy pass to an insecure assets. You can check out my <a href="">previous blog post</a> for tips on how to configure NGINX with free SSL. If you are using Heroku as your hosting provider, you can setup NGINX as a reverse proxy in front of your Rails app using <a href="https://github.com/KazW/nginx-buildpack" target="_blank">a buildpack</a>.</p>
+
+<p>Here’s a sample config:</p>
+
+<figure class="highlight"><pre><code class="language-nginx" data-lang="nginx"><span class="k">server</span> <span class="p">{</span>
+     <span class="kn">listen</span> <span class="mi">80</span><span class="p">;</span>
+     <span class="kn">listen</span> <span class="mi">443</span><span class="p">;</span>
+     <span class="kn">server_name</span> <span class="s">example-proxy.com</span><span class="p">;</span>
+
+     <span class="kn">ssl</span>        <span class="no">on</span><span class="p">;</span>
+     <span class="kn">ssl_certificate</span>         <span class="n">/etc/nginx/origin_cert.pem</span><span class="p">;</span>
+     <span class="kn">ssl_certificate_key</span>     <span class="n">/etc/nginx/private_key.pem</span><span class="p">;</span>
+
+     <span class="kn">location</span> <span class="n">/</span> <span class="p">{</span>
+        <span class="kn">resolver</span> <span class="mi">8</span><span class="s">.8.8.8</span><span class="p">;</span>
+        <span class="kn">proxy_pass</span> <span class="nv">$arg_target</span><span class="p">;</span>
+     <span class="p">}</span>
+<span class="p">}</span></code></pre></figure>
+
+<p><code class="highlighter-rouge">resolver 8.8.8.8;</code> line is needed to dynamically resolve DNS config of a target asset server and enable support for different assets hosts. An advantage of this solution is that you don’t block your Ruby process and NGINX is better suited to handle multiple concurrent clients than Ruby servers.</p>
+
+<h2 id="summary">Summary</h2>
+
+<p>I’ve been using the NGINX based solution in <a href="https://wishlist.apki.io/" target="_blank">Smart Wishlist</a> for quite a while now to serve iTunes assets via SSL to both React based frontend and iOS apps. Remember that if your project has a lot of traffic, you would need to watch out for problems with rate limiting by your assets API provider. You could also use these techniques to proxy pass any other kind of static assets, not only images.</p>
+
+<p>Hope those tips can help you offload some of the work from your servers. Doing an SSL proxy pass is quicker and cheaper to implement than downloading the assets and hosting them yourself.</p>
+
+<p><strong>Disclaimer:</strong> As pointed out in the comments, these examples do not include any restrictions on how and which assets can be accessed. In theory bad guys could start piggybacking on a proxy configured like this. You should consider IP, host or asset type based whitelist to make it more secure.</p>
+
+<div class="footnotes">
+  <ol>
+    <li id="fn:1">
+      <p>iTunes API assets are available through SSL via an undocumented URL: <code class="highlighter-rouge">http://is4-ssl.mzstatic.com/image/thumb/Purple128/v4/50/b6/59/50b65977-5605-4cf3-eee6-6ff350a9c9c4/source/406x228bb.jpg</code> but it could change at any time. Hopefully, Apple will migrate all of iTunes API to SSL only soon. Point of this blog post is to show what you could do if SSL version of the asset was not available at all. <a href="#fnref:1" class="reversefootnote">↩</a></p>
+    </li>
+    <li id="fn:2">
+      <p>A screenshot comes for an <a href="https://itunes.apple.com/us/app/playdeads-inside/id1201642309?mt=8" target="_blank">INSIDE</a> game. <a href="#fnref:2" class="reversefootnote">↩</a></p>
+    </li>
+  </ol>
+</div>
+
+  </article>
+  <div class="page-navigation">
+  
+    <a class="prev navigation-link" href="/amp/2018/01/22/setup-multiple-domains-with-free-ssl-from-cloudflare">&laquo; Multiple Domains with Free Wildcard SSL from Cloudflare</a>
+  
+  
+    <a class="right next navigation-link" href="/amp/2018/02/05/optimize-rails-performance-bottleneck-with-caching-and-rack-middleware"> Optimize Rails Performance with Redis Caching and Rack Middleware &raquo;</a>
+  
+</div>
+
+<div class="post-footer">
+  <p>
+    Posted by Paweł Urbanek on Jan 29, 2018
+    <br>
+    <br>
+    Find me on <a class='link' target='_blank' href="https://twitter.com/_pawurb">Twitter</a> or <a class='link' target='_blank' href="https://github.com/pawurb">GitHub</a>.
+  </p>
+    <p>
+    This is an AMP version of this page
+    <a class='link theme-color' href="/2018/01/29/setup-ssl-proxy-for-insecure-browser-content-with-ruby-and-nginx"> click here</a>
+    to see the oryginal version and comments.
+  </p>
+</div>
+
+</main>
+</body>
+</html>
+

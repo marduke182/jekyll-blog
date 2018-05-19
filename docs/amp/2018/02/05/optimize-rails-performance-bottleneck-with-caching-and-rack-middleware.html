@@ -1,0 +1,591 @@
+<!doctype html>
+<html amp lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Optimize Rails Performance with Redis Caching and Rack Middleware</title>
+    <link rel="canonical" href="https://pawelurbanek.com/2018/02/05/optimize-rails-performance-bottleneck-with-caching-and-rack-middleware/" />
+    <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
+    <style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>
+
+    <link href='https://fonts.googleapis.com/css?family=Merriweather:900,900italic,300,300italic' rel='stylesheet'>
+    <link href='https://fonts.googleapis.com/css?family=Lato:900,300' rel='stylesheet'>
+    <style amp-custom>
+       /** Syntax highlighting styles */
+.highlight { background: #fff; }
+.highlighter-rouge .highlight { background: #eef; }
+.highlight .c { color: #998; font-style: italic; }
+.highlight .err { color: #a61717; background-color: #e3d2d2; }
+.highlight .k { font-weight: bold; }
+.highlight .o { font-weight: bold; }
+.highlight .cm { color: #998; font-style: italic; }
+.highlight .cp { color: #999; font-weight: bold; }
+.highlight .c1 { color: #998; font-style: italic; }
+.highlight .cs { color: #999; font-weight: bold; font-style: italic; }
+.highlight .gd { color: #000; background-color: #fdd; }
+.highlight .gd .x { color: #000; background-color: #faa; }
+.highlight .ge { font-style: italic; }
+.highlight .gr { color: #a00; }
+.highlight .gh { color: #999; }
+.highlight .gi { color: #000; background-color: #dfd; }
+.highlight .gi .x { color: #000; background-color: #afa; }
+.highlight .go { color: #888; }
+.highlight .gp { color: #555; }
+.highlight .gs { font-weight: bold; }
+.highlight .gu { color: #aaa; }
+.highlight .gt { color: #a00; }
+.highlight .kc { font-weight: bold; }
+.highlight .kd { font-weight: bold; }
+.highlight .kp { font-weight: bold; }
+.highlight .kr { font-weight: bold; }
+.highlight .kt { color: #458; font-weight: bold; }
+.highlight .m { color: #099; }
+.highlight .s { color: #d14; }
+.highlight .na { color: #008080; }
+.highlight .nb { color: #0086B3; }
+.highlight .nc { color: #458; font-weight: bold; }
+.highlight .no { color: #008080; }
+.highlight .ni { color: #800080; }
+.highlight .ne { color: #900; font-weight: bold; }
+.highlight .nf { color: #900; font-weight: bold; }
+.highlight .nn { color: #555; }
+.highlight .nt { color: #000080; }
+.highlight .nv { color: #008080; }
+.highlight .ow { font-weight: bold; }
+.highlight .w { color: #bbb; }
+.highlight .mf { color: #099; }
+.highlight .mh { color: #099; }
+.highlight .mi { color: #099; }
+.highlight .mo { color: #099; }
+.highlight .sb { color: #d14; }
+.highlight .sc { color: #d14; }
+.highlight .sd { color: #d14; }
+.highlight .s2 { color: #d14; }
+.highlight .se { color: #d14; }
+.highlight .sh { color: #d14; }
+.highlight .si { color: #d14; }
+.highlight .sx { color: #d14; }
+.highlight .sr { color: #009926; }
+.highlight .s1 { color: #d14; }
+.highlight .ss { color: #990073; }
+.highlight .bp { color: #999; }
+.highlight .vc { color: #008080; }
+.highlight .vg { color: #008080; }
+.highlight .vi { color: #008080; }
+.highlight .il { color: #099; }
+
+.icon > svg { display: inline-block; width: 16px; height: 16px; vertical-align: middle; }
+.icon > svg path { fill: #828282; }
+
+amp-img { background-color: grey; }
+
+.cf:after { content: ""; display: table; clear: both; }
+
+main { display: block; }
+
+body { font-family: "Lato", "Helvetica Neue", "Open Sans", Arial, Helvetica, sans-serif; margin: 0; padding: 0; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; -moz-font-feature-settings: "liga=1, dlig=1"; -ms-font-feature-settings: "liga", "dlig"; -webkit-font-feature-settings: "liga", "dlig"; -o-font-feature-settings: "liga", "dlig"; font-feature-settings: "liga", "dlig"; }
+
+.site-header { position: relative; width: 100%; max-width: 700px; margin: 16px auto 0 auto; -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; }
+@media only screen and (max-width: 800px) { .site-header { padding: 0 16px; } }
+.site-header .page-links { display: block;  font-weight: 400; font-style: normal; font-size: 18px; line-height: 30px; }
+.site-header .page-links a { text-decoration: none; }
+
+.blog-header { width: 100%; max-width: 700px; margin: 0 auto; position: relative; padding: 0; -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; }
+.blog-header .blog-title { margin-bottom: 8px; font-size: 50px; font-weight: 700; letter-spacing: -2px; outline: 0; line-height: 50px; word-break: break-word; color: #333333; }
+.blog-header .blog-description { font-size: 28px; margin: 0 0 20px; padding: 0; line-height: 1.2; color: #666666; font-weight: 300; }
+
+.content { width: 100%; max-width: 700px; margin: 25px auto 0 auto; -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; }
+@media only screen and (max-width: 800px) { .content { padding: 0 16px; } }
+.content article { padding: 20px 0; border-bottom: 1px solid #f2f2f0; }
+.content article:last-child { border-bottom: 0px; }
+.content article .post-title { letter-spacing: -0.02em; font-weight: 700; font-style: normal; display: block; font-size: 36px; line-height: 1.15; margin: 0 0; }
+.content article .post-title a { text-decoration: none; color: #333332; }
+.content article .post-title a:hover { text-decoration: none; }
+.content article .post-excerpt { letter-spacing: -0.02em; font-weight: 300; font-style: normal; font-size: 20px; line-height: 1.59; color: #666665; }
+.content article .post-meta { font-size: 14px; color: #b3b3b1; line-height: 30px; }
+.content article .post-meta a { color: #b3b3b1; text-decoration: none; }
+.content article .post-meta a:hover { text-decoration: underline; }
+
+.post-template .content { max-width: 700px; }
+
+.index-headline { border-top: 1px solid #dededc; margin: 0; padding: 16px 0; }
+.index-headline span { color: #b3b3b1; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+
+.pagination { text-align: center; padding: 16px 0 0; font-size: 12px; }
+.pagination a { color: #999999; text-decoration: none; }
+.pagination a:hover { color: #333333; }
+
+.site-footer { margin: 0 auto; padding: 48px 0; width: 100%; max-width: 700px; font-size: 12px; text-align: center; color: #999999; line-height: 17.6px; }
+.site-footer a { color: #666666; text-decoration: none; }
+.site-footer a:hover { color: #333333; }
+
+.post .post-meta { font-family: "Lato", "Helvetica Neue", "Open Sans", Arial, Helvetica, sans-serif; }
+.post .post-title { font-weight: 700; font-style: normal; letter-spacing: -0.04em; font-size: 50px; line-height: 1.1; color: #333332; margin-bottom: 50px; }
+.post .author-image { background-image: url(/amplify//assets/images/author.jpg); display: inline-block; width: 30px; height: 30px; line-height: 30px; margin-right: 8px; margin-bottom: -10px; float: left; background-size: cover; border-radius: 100%; text-indent: -9999px; }
+.post .post-meta-text { color: #b3b3b1; letter-spacing: -0.02em; font-weight: 400; font-style: normal; font-size: 14px; overflow: hidden; font-family: "Lato", "Helvetica Neue", "Open Sans", Arial, Helvetica, sans-serif; white-space: nowrap; text-overflow: ellipsis; }
+.post .post-content { width: 100%; font-family: "Merriweather",Georgia, Cambria, "Times New Roman", Times, "Lora", serif; color: #333333; }
+.post .post-content h1, .post .post-content h2, .post .post-content h3 { font-family: "Lato", "Helvetica Neue", "Open Sans", Arial, Helvetica, sans-serif; }
+.post .post-content h3, .post .post-content h4, .post .post-content h5, .post .post-content h6 { letter-spacing: -0.02em; font-weight: 700; font-style: normal; font-size: 24px; line-height: 1.3; margin-top: 50px; margin-bottom: 0px; font-family: "Lato", "Helvetica Neue", "Open Sans", Arial, Helvetica, sans-serif; }
+.post .post-content h3 { font-size: 36px; }
+.post .post-content h2, .post .post-content h1 { letter-spacing: -0.02em; font-weight: 700; font-style: normal; font-size: 42px; line-height: 1.2; margin-top: 50px; margin-bottom: 0px; }
+.post .post-content p { font-weight: 400; font-style: normal; font-size: 22px; line-height: 1.59; letter-spacing: -.002em; margin-top: 30px; margin-bottom: 0; color: #333333; -webkit-hyphens: auto; -moz-hyphens: auto; hyphens: auto; }
+.post .post-content a { color: #333333; text-decoration: underline; }
+.post .post-content amp-img, .post .post-content amp-youtube { margin-top: 30px; }
+.post .post-content figure { margin: 0; padding: 0 0 30px; }
+.post .post-content figcaption { font-weight: 400; font-style: italic; font-size: 16px; line-height: 1.3; color: #666665; outline: 0; z-index: 300; text-align: center; }
+.post .post-content hr { border: 0; padding: 0; display: block; width: 15%; margin: 30px auto; border: 0px solid #dddddd; border-top: 1px solid #dddddd; }
+.post .post-content blockquote { margin: 0 0 30px; margin-left: -26px; border-left: 3px solid #57ad68; padding-left: 20px; }
+.post .post-content blockquote p { letter-spacing: 0.01rem; font-weight: 400; mborder-left: 3px solid #57ad68; mpadding-left: 20px; mmargin-left: -26px; padding-bottom: 3px; }
+.post .post-content ul, .post .post-content ol { padding: 0 0 30px; margin: 0; }
+.post .post-content li { padding: 0; font-weight: 400; font-style: normal; font-size: 23px; line-height: 30px; margin-left: 30px; margin-bottom: 12px; padding-top: 2px; }
+.post .post-content li p { padding: 0 0 1.618rem; }
+.post .post-content ol li { list-style-type: decimal; }
+.post .bottom-teaser { padding: 50px 0 0 0; font-family: "Helvetica Neue", "Open Sans", Arial, Helvetica, sans-serif; }
+.post .bottom-teaser hr { border: 0; padding: 0; display: block; width: 15%; margin: 16px 0 16px 100px; border: 0px solid #dddddd; border-top: 1px solid #dddddd; }
+.post .bottom-teaser .isLeft { float: left; width: 47%; -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; }
+@media only screen and (max-width: 800px) { .post .bottom-teaser .isLeft { width: 100%; padding-bottom: 32px; } }
+.post .bottom-teaser .isLeft .bio { margin-top: 18px; margin-bottom: 18px; }
+.post .bottom-teaser .isLeft .username { margin-left: 4px; margin-right: 18px; margin-bottom: 18px; }
+.post .bottom-teaser .isLeft .index-headline { padding-bottom: 32px; }
+.post .bottom-teaser .isLeft a { color: black; text-decoration: none; }
+.post .bottom-teaser .isLeft a:hover { color: #333333; text-decoration: underline; }
+.post .bottom-teaser .isLeft .author-image { display: block; width: 80px; height: 80px; float: left; background-size: cover; border-radius: 100%; text-indent: -9999px; }
+.post .bottom-teaser .isLeft h4 { font-size: 18px; line-height: 1.1; font-weight: 700; padding: 0; margin: 0; padding-left: 100px; }
+.post .bottom-teaser .isLeft p { font-size: 14px; line-height: 1.3; font-weight: 400; padding: 0; margin: 0; padding-left: 100px; }
+.post .bottom-teaser .isLeft p.published { color: #999999; }
+.post .bottom-teaser .isRight { float: right; width: 47%; -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; }
+@media only screen and (max-width: 800px) { .post .bottom-teaser .isRight { width: 100%; } }
+.post .bottom-teaser .isRight .index-headline { padding-bottom: 32px; }
+.post .bottom-teaser .isRight .site-footer { margin: 0; padding: 0; color: #333333; text-align: left; font-size: 14px; line-height: 1.3; color: #999999; }
+.post .bottom-teaser .isRight .site-footer a { color: #333333; text-decoration: none; }
+.post .bottom-teaser .isRight .site-footer a:hover { text-decoration: underline; }
+.post .bottom-teaser .isRight .site-footer .poweredby { display: block; padding-bottom: 18px; font-weight: 700; color: #333333; }
+
+.share { text-align: right; padding: 20px 0 0; }
+.share a { text-decoration: none; color: #bbbbbb; padding-left: 12px; }
+.share a .hidden { display: none; }
+.share a:hover { color: #333333; }
+
+pre, code { font-size: 15px; border: 1px solid #e8e8e8; border-radius: 3px; background-color: #eeeeff; }
+
+code { padding: 1px 5px; }
+
+pre { padding: 8px 12px; overflow-x: scroll; }
+pre > code { border: 0; padding-right: 0; padding-left: 0; }
+
+amp-img {
+  text-align: center;
+}
+
+.page-link.theme-color {
+  opacity: 0.90;
+  color: #ff6200;
+}
+
+code.highlighter-rouge {
+  word-wrap: break-word;
+}
+
+.post a {
+  color: #333;
+  border-bottom: 1px solid;
+  text-decoration: none;
+}
+
+.post a, .post a:link, .post a:visited {
+  background-image: none;
+  color: #333;
+  text-decoration: none;
+}
+
+.site-header .page-links{
+  font-size: 1.2em;
+}
+
+.page-link {
+  padding: 0px 5px 0px 5px;
+}
+
+.site-header {
+  padding-bottom: 10px;
+}
+
+.link {
+  color: #333;
+  border-bottom: 1px solid;
+  text-decoration: none;
+}
+
+.author-header h2 {
+  margin-bottom: 10px;
+}
+
+.author-header p {
+  margin-top: 5px;
+  font-family: "Merriweather", Georgia, Cambria, "Times New Roman", Times, "Lora", serif;
+  font-size: 1.2em;
+  opacity: 0.90;
+  color: #ff6200;
+}
+
+.site-header {
+  text-align: center;
+}
+
+.content .post {
+  padding-top: 0px;
+}
+
+.site-header .page-links {
+  font-family: "Merriweather", Georgia, Cambria, "Times New Roman", Times, "Lora", serif;
+  font-size: 1.2em;
+}
+
+.post a.theme-color {
+  opacity: 0.90;
+  color: #ff6200;
+}
+
+a.theme-color {
+  opacity: 0.90;
+  color: #ff6200;
+}
+
+.page-navigation {
+  display: block;
+  width: auto;
+  overflow: hidden;
+}
+
+.page-navigation a {
+  display: block;
+  width: 50%;
+  float: left;
+  margin: 1em 0;
+}
+
+.navigation-link {
+  color: #333;
+  text-decoration: underline;
+}
+
+.page-navigation .next {
+  text-align: right;
+}
+
+body p, body a {
+  line-height: 1.7;
+  font-family: "Merriweather", Georgia, Cambria, "Times New Roman", Times, "Lora", serif;
+
+}
+
+    </style>
+    <script async src="https://cdn.ampproject.org/v0.js"></script>
+    <script async custom-element="amp-analytics" src="https://cdn.ampproject.org/v0/amp-analytics-0.1.js"></script>
+
+    
+<!-- Google Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "BlogPosting",
+    "mainEntityOfPage": {
+      "@type":"WebPage",
+      "@id":"https://pawelurbanek.comamp/2018/02/05/optimize-rails-performance-bottleneck-with-caching-and-rack-middleware"
+    },
+    "headline": "Optimize Rails Performance with Redis Caching and Rack Middleware",
+    "image": {
+      "@type": "ImageObject",
+      "url": "https://pawelurbanek.com/assets/rails-performance-optimized-5277e2aeef07e281097345499e86ed0a58ed300b7aaf7599b06c965b3e058817.jpg",
+      "height": 500,
+      "width": 800
+    },
+    "datePublished": "2018-02-05",
+    "dateModified": "2018-02-05",
+    "author": {
+      "@type": "Person",
+      "name": "Paweł Urbanek"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "PabloWeb Paweł Urbanek",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://pawelurbanek.com/assets/pabloweb-69223ab6871fe2232fabdd00e23d420a15170da8a9644aee5f73a422067629c4.jpg",
+        "width": 600,
+        "height": 60
+      }
+    },
+    "description": "According to (a bit exaggerated) Pareto principle, 5% of your Rails app endpoints could account for 95% of performance issues. In this blog post I will describe how I improved a performance of my Rails application’s bottleneck endpoint by over 500% using a simple Redis caching technique and a custom Rack middleware.",
+    "keywords": "ruby, rails, memory, heroku, save money, startup, optimization, full stack, caching, redis, performance, Active Record"
+  }
+  </script>
+
+
+  </head>
+  <body>
+  <amp-analytics type="googleanalytics">
+    <script type="application/json">
+    {
+      "vars": {
+        "account": "UA-34244867-12"
+      },
+      "triggers": {
+        "trackPageview": {
+          "on": "visible",
+          "request": "pageview"
+        }
+      }
+    }
+    </script>
+  </amp-analytics>
+
+
+<main class="content" role="main">
+<header class="site-header">
+  <div class='author-header'>
+    <h2>Paweł Urbanek</h2>
+    <p class='theme-color'>Full Stack Blog</p>
+  </div>
+   <div class="page-links theme-color">
+     <a class="page-link theme-color" href="/">Home</a>
+     <a class="page-link theme-color" href="/about">About</a>
+     <a class="page-link theme-color" href="/contact">Contact</a>
+   </div>
+</header>
+<article class="post">
+  <h1 class="blog-title">
+    Optimize Rails Performance with Redis Caching and Rack Middleware
+  </h1>
+  <p>
+    This is an AMP version of this page
+    <a class='theme-color' href="/2018/02/05/optimize-rails-performance-bottleneck-with-caching-and-rack-middleware"> click here</a>
+    to see the oryginal version.
+  </p>
+  <p><amp-img class="center-image post-main-image" alt="Fast car symbolizing Ruby on Rails performance and speed" src="/assets/rails-performance-optimized-5277e2aeef07e281097345499e86ed0a58ed300b7aaf7599b06c965b3e058817.jpg" width="800" height="500" layout="responsive"><noscript><img class="center-image post-main-image" alt="Fast car symbolizing Ruby on Rails performance and speed" src="/assets/rails-performance-optimized-5277e2aeef07e281097345499e86ed0a58ed300b7aaf7599b06c965b3e058817.jpg" width="800" height="500"></noscript></amp-img></p>
+
+<p>According to (a bit exaggerated) Pareto principle, 5% of your Rails app endpoints could account for 95% of performance issues. In this blog post I will describe how I improved a performance of my Rails application’s bottleneck endpoint by over 500% using a simple Redis caching technique and a custom Rack middleware.</p>
+
+<p><amp-img class="center-image" alt="Results of Rails app performance optimization benchmarks" src="/assets/rails-app-benchmark-chart-7d586e0d026c7434633b160eb204d3213b129a3c72b847898dddb820b5e46456.png" width="800" height="431" layout="responsive"><noscript><img class="center-image" alt="Results of Rails app performance optimization benchmarks" src="/assets/rails-app-benchmark-chart-7d586e0d026c7434633b160eb204d3213b129a3c72b847898dddb820b5e46456.png" width="800" height="431"></noscript></amp-img>
+<span class="annotation">Over 500% performance improvement</span></p>
+
+<p>Benchmarks were conducted using <a href="https://github.com/JoeDog/siege" target="_blank">Siege</a> on a 2015 Mac Book Pro with 16GB RAM and 2,2 GHz Intel Core i7. I’ve executed them against Rails app running locally in a production mode with a copy of a production database using Puma server with 2 workers, 16 threads each. I’ve used the following Siege settings:</p>
+
+<p><code class="highlighter-rouge">siege --time=60s --concurrent=20</code></p>
+
+<p>Read on if you’re interested in how the improvement was achieved.</p>
+
+<h2 id="before-rails-performance-optimization">Before Rails performance optimization</h2>
+
+<p>A detailed performance benchmark results before I started the whole optimization process:</p>
+
+<figure class="highlight"><pre><code class="language-text" data-lang="text">Transactions:                    5489 hits
+Availability:                  100.00 %
+Elapsed time:                   59.47 secs
+Data transferred:              868.35 MB
+Response time:                   0.22 secs
+Transaction rate:               92.30 trans/sec
+Throughput:                     14.60 MB/sec
+Concurrency:                    19.94
+Successful transactions:         5489
+Failed transactions:                0
+Longest transaction:             0.63
+Shortest transaction:            0.03</code></pre></figure>
+
+<p>I decided this endpoint would a good candidate for optimization because it was used by both landing page React frontend and all of the iOS mobile clients on startup. Also, data was the same regardless of which user requests it, so I would be able to cache one version and present it to everyone.</p>
+
+<p>One caveat was that the endpoint accepts an optional param <code class="highlighter-rouge">discounted_by</code>. Because it is a continuous param type (all values from 0.0 to 100.0 are valid) it would be impossible to cache all the potential queries. If your query accepts only one param of discrete type (e.g. <code class="highlighter-rouge">category</code>), you could consider caching all the possible results.</p>
+
+<p>I ended up caching results of the query performed without param and serve cached version to clients which did not provide <code class="highlighter-rouge">discounted_by</code> value in the request.</p>
+
+<p>If you don’t know which of your app’s endpoints could be worth optimizing then <a href="https://newrelic.com/" target="_blank">New Relic</a> and <a href="https://github.com/ankane/pghero" target="_blank">pghero</a> are great starting points for an investigation.</p>
+
+<h2 id="add-redis-cache-for-slow-active-record-queries">Add Redis cache for slow Active Record queries</h2>
+
+<p>Database level optimization techniques have its limits. Once your data set grows large and business logic obliges you to fetch data from a couple of joined tables it might be difficult to achieve desired performance in an SQL database without resorting to caching.</p>
+
+<p>If you are using Sidekiq in your project then you have Redis database already there. It is much simpler to use an existing infrastructure than having to add yet another dependency (e.g. <code class="highlighter-rouge">Memcached</code>). Redis provides a straightforward API for key-value storage. You don’t need to add any special gems to use it as your cache.</p>
+
+<p>If Heroku is your hosting provider, then <a href="https://elements.heroku.com/addons/redistogo">Redis to Go</a> is what you are probably using. Enabling direct access to Redis, in that case, is as simple as adding one file:</p>
+
+<p><code class="highlighter-rouge">config/initializers/redis.rb</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby">  <span class="nb">require</span> <span class="s1">'redis'</span>
+
+  <span class="vg">$redis</span> <span class="o">=</span> <span class="no">Redis</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="ss">url: </span><span class="no">ENV</span><span class="p">.</span><span class="nf">fetch</span><span class="p">(</span><span class="s2">"REDISTOGO_URL"</span><span class="p">))</span></code></pre></figure>
+
+<p>I am using <a href="https://github.com/ondrejbartas/sidekiq-cron" target="_blank">Sidekiq Cron</a> to update my cache entry every half an hour:</p>
+
+<p><code class="highlighter-rouge">app/jobs/cache_updater_job.rb</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">CacheUpdaterJob</span>
+  <span class="kp">include</span> <span class="no">Sidekiq</span><span class="o">::</span><span class="no">Worker</span>
+  <span class="n">sidekiq_options</span> <span class="ss">queue: </span><span class="s1">'default'</span>
+
+  <span class="k">def</span> <span class="nf">perform</span>
+    <span class="n">products</span> <span class="o">=</span> <span class="no">Product</span><span class="p">.</span><span class="nf">current_promotions</span><span class="p">(</span>
+      <span class="no">Product</span><span class="o">::</span><span class="no">GOOD_DISCOUNT</span>
+    <span class="p">).</span><span class="nf">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">product</span><span class="o">|</span>
+      <span class="no">Product</span><span class="o">::</span><span class="no">Serializer</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">product</span><span class="p">).</span><span class="nf">to_json</span>
+    <span class="k">end</span>
+
+    <span class="n">json_data</span> <span class="o">=</span> <span class="p">{</span> <span class="ss">products: </span><span class="n">products</span> <span class="p">}.</span><span class="nf">to_json</span>
+    <span class="vg">$redis</span><span class="p">.</span><span class="nf">set</span><span class="p">(</span>
+      <span class="no">Product</span><span class="o">::</span><span class="no">PROMOTIONS_CACHE_KEY</span><span class="p">,</span>
+      <span class="n">json_data</span>
+    <span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></figure>
+
+<p><code class="highlighter-rouge">config/schedule.yml</code></p>
+
+<figure class="highlight"><pre><code class="language-yaml" data-lang="yaml"><span class="na">update_promotions_cache</span><span class="pi">:</span>
+   <span class="na">cron</span><span class="pi">:</span> <span class="s2">"</span><span class="s">*/30</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*"</span>
+   <span class="na">class</span><span class="pi">:</span> <span class="s2">"</span><span class="s">CacheUpdaterJob"</span></code></pre></figure>
+
+<p>Updating cache every 30 minutes works for my app’s case. Even if you need to serve your clients an almost live data, updating the cache every couple of seconds could still be more performant then fetching it from a database for every request.</p>
+
+<p>Here’s how a Rails controller returning a cached response for the request without <code class="highlighter-rouge">discounted_by</code> param looks like:</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">API</span><span class="o">::</span><span class="no">PromotionsController</span> <span class="o">&lt;</span> <span class="no">API</span><span class="o">::</span><span class="no">BaseController</span>
+  <span class="k">def</span> <span class="nf">index</span>
+    <span class="k">if</span> <span class="n">discounted_by</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="ss">:discounted_by</span><span class="p">]</span>
+      <span class="n">products</span> <span class="o">=</span> <span class="no">Product</span><span class="p">.</span><span class="nf">current_promotions</span><span class="p">(</span><span class="n">discounted_by</span><span class="p">)</span>
+      <span class="p">.</span><span class="nf">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">product</span><span class="o">|</span>
+        <span class="no">Product</span><span class="o">::</span><span class="no">Serializer</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">product</span><span class="p">).</span><span class="nf">to_json</span>
+      <span class="k">end</span>
+      <span class="n">render</span> <span class="ss">json: </span><span class="p">{</span> <span class="ss">products: </span><span class="n">products</span> <span class="p">}</span>
+    <span class="k">else</span>
+      <span class="nb">self</span><span class="p">.</span><span class="nf">content_type</span> <span class="o">=</span> <span class="s2">"application/json"</span>
+      <span class="nb">self</span><span class="p">.</span><span class="nf">response_body</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="vg">$redis</span><span class="p">.</span><span class="nf">get</span><span class="p">(</span><span class="no">Product</span><span class="o">::</span><span class="no">PROMOTIONS_CACHE_KEY</span><span class="p">)</span> <span class="o">||</span> <span class="s2">""</span>
+      <span class="p">]</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></figure>
+
+<p>This version is ~5 times faster than the base one:</p>
+
+<figure class="highlight"><pre><code class="language-text" data-lang="text">Transactions:              27002 hits
+Availability:             100.00 %
+Elapsed time:              59.30 secs
+Data transferred:        4271.65 MB
+Response time:              0.04 secs
+Transaction rate:         455.35 trans/sec
+Throughput:                72.03 MB/sec
+Concurrency:               19.96
+Successful transactions:   27002
+Failed transactions:           0
+Longest transaction:        1.21
+Shortest transaction:       0.00</code></pre></figure>
+
+<p>Not only it eliminates a need for a database query but also reduces memory usage because you don’t need to instantiate Active Record objects. Depending on your data size even JSON serialization itself could be a severe performance overhead.</p>
+
+<p>You can also check out my other blog post for more tips on how to <a href="https://pawelurbanek.com/2018/01/15/limit-rails-memory-usage-fix-R14-and-save-money-on-heroku/">reduce memory usage in Rails apps</a>.</p>
+
+<h2 id="optimize-rails-with-rack-middleware">Optimize Rails with Rack middleware</h2>
+
+<p>Each request has to pass through all of the following Rails middlewares before it hits your application’s code:</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">use</span> <span class="no">Rack</span><span class="o">::</span><span class="no">Sendfile</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">Static</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">Executor</span>
+<span class="n">use</span> <span class="no">ActiveSupport</span><span class="o">::</span><span class="no">Cache</span><span class="o">::</span><span class="no">Strategy</span><span class="o">::</span><span class="no">LocalCache</span><span class="o">::</span><span class="no">Middleware</span>
+<span class="n">use</span> <span class="no">Rack</span><span class="o">::</span><span class="no">Runtime</span>
+<span class="n">use</span> <span class="no">Rack</span><span class="o">::</span><span class="no">MethodOverride</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">RequestId</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">RemoteIp</span>
+<span class="n">use</span> <span class="no">Rails</span><span class="o">::</span><span class="no">Rack</span><span class="o">::</span><span class="no">Logger</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">ShowExceptions</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">DebugExceptions</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">Callbacks</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">Cookies</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">Session</span><span class="o">::</span><span class="no">CookieStore</span>
+<span class="n">use</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">Flash</span>
+<span class="n">use</span> <span class="no">Rack</span><span class="o">::</span><span class="no">Head</span>
+<span class="n">use</span> <span class="no">Rack</span><span class="o">::</span><span class="no">ConditionalGet</span>
+<span class="n">use</span> <span class="no">Rack</span><span class="o">::</span><span class="no">ETag</span></code></pre></figure>
+
+<p>You can shave off a couple of milliseconds by bypassing the default stack and sending a response to client straight from your custom Rack middleware. You can do it by adding the following Rack app:</p>
+
+<p><code class="highlighter-rouge">lib/cache_middleware.rb</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">CacheMiddleware</span>
+  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+    <span class="vi">@app</span> <span class="o">=</span> <span class="n">app</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+    <span class="n">req</span> <span class="o">=</span> <span class="no">Rack</span><span class="o">::</span><span class="no">Request</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+    <span class="n">cache_path</span> <span class="o">=</span> <span class="n">req</span><span class="p">.</span><span class="nf">path</span> <span class="o">==</span> <span class="s2">"/api/promotions.json"</span>
+    <span class="n">no_param</span> <span class="o">=</span> <span class="n">req</span><span class="p">.</span><span class="nf">params</span><span class="p">[</span><span class="s2">"discounted_by"</span><span class="p">]</span> <span class="o">==</span> <span class="kp">nil</span>
+
+    <span class="k">if</span> <span class="n">cache_path</span> <span class="o">&amp;&amp;</span> <span class="n">no_param</span>
+      <span class="p">[</span>
+        <span class="mi">200</span><span class="p">,</span>
+        <span class="p">{</span><span class="s2">"Content-Type"</span> <span class="o">=&gt;</span> <span class="s2">"application/json"</span><span class="p">},</span>
+        <span class="p">[</span><span class="vg">$redis</span><span class="p">.</span><span class="nf">get</span><span class="p">(</span><span class="no">Product</span><span class="o">::</span><span class="no">PROMOTIONS_CACHE_KEY</span><span class="p">)</span> <span class="o">||</span> <span class="s2">""</span><span class="p">]</span>
+      <span class="p">]</span>
+    <span class="k">else</span>
+      <span class="vi">@app</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></figure>
+
+<p>and configuring your Rails app to insert in at the beginning of its middleware stack:</p>
+
+<p><code class="highlighter-rouge">config/environments/production.rb</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby">  <span class="n">config</span><span class="p">.</span><span class="nf">middleware</span><span class="p">.</span><span class="nf">insert_before</span> <span class="mi">0</span><span class="p">,</span> <span class="no">CacheMiddleware</span></code></pre></figure>
+
+<p>It checks if a request is supposed to hit your optimized endpoint and has no value for an optional param. If that is the case it returns the cached JSON to the client, if not it passes the request to the next middleware in the stack.</p>
+
+<p>This method is a bit extreme. It makes sense to use it only if you are experiencing a very heavy load. It also disables most of the tools which Rails provide out of the box, like cookies, session management or logging. Anyway, depending on your use case those couple of milliseconds saved could translate into serious hosting costs reduction.</p>
+
+<p>These are detailed results of benchmarks when using a custom middleware. It’s  ~20% improvement compared to <em>“cache only”</em> version:</p>
+
+<figure class="highlight"><pre><code class="language-text" data-lang="text">Transactions:               32782 hits
+Availability:              100.00 %
+Elapsed time:               59.94 secs
+Data transferred:         5186.03 MB
+Response time:               0.01 secs
+Transaction rate:          546.91 trans/sec
+Throughput:                 86.52 MB/sec
+Concurrency:                 19.97
+Successful transactions:     32782
+Failed transactions:             0
+Longest transaction:          0.16
+Shortest transaction:         0.00</code></pre></figure>
+
+<h2 id="final-remarks">Final remarks</h2>
+
+<p>To keep things simple I did not cover any of the more advanced techniques like automatic cache invalidation or using a built-in Rails cache support. Check out <a href="https://github.com/redis-store/redis-rails" target="_blank">redis-rails</a> gem and <a href="http://guides.rubyonrails.org/caching_with_rails.html" target="_blank">official guides</a> if you are interested in that. Please remember that benchmarks were conducted on a local machine so they don’t take networking overhead into account. 500% gain is what I managed to achieve in application-specific code.</p>
+
+
+  </article>
+  <div class="page-navigation">
+  
+    <a class="prev navigation-link" href="/amp/2018/01/29/setup-ssl-proxy-for-insecure-browser-content-with-ruby-and-nginx">&laquo; Simple SSL Proxy for Insecure Browser Content with Ruby or NGINX</a>
+  
+  
+    <a class="right next navigation-link" href="/amp/2018/02/12/ruby-on-rails-service-objects-and-testing-in-isolation"> Ruby on Rails Simple Service Objects and Testing in Isolation &raquo;</a>
+  
+</div>
+
+<div class="post-footer">
+  <p>
+    Posted by Paweł Urbanek on Feb 5, 2018
+    <br>
+    <br>
+    Find me on <a class='link' target='_blank' href="https://twitter.com/_pawurb">Twitter</a> or <a class='link' target='_blank' href="https://github.com/pawurb">GitHub</a>.
+  </p>
+    <p>
+    This is an AMP version of this page
+    <a class='link theme-color' href="/2018/02/05/optimize-rails-performance-bottleneck-with-caching-and-rack-middleware"> click here</a>
+    to see the oryginal version and comments.
+  </p>
+</div>
+
+</main>
+</body>
+</html>
+

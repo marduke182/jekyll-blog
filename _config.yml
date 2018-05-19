@@ -1,0 +1,108 @@
+# Site settings
+head_title: Jesús Quintana
+email: jrqb182@gmail.com
+author:      Jesús Quintana
+description: my thoughts
+subtitle: In a developer head
+keywords: your, keywords, seperated, by, commas
+baseurl:     ""
+url:         "https://blog.jquintanab.com/"
+date_format: "%b %-d, %Y"
+structured_date_format: '%Y-%m-%d'
+header_pages:
+ - pages/home.html
+ - pages/about.md
+ - pages/contact.html
+
+# Google services
+google_verification:
+# Use either direct GA implementation or set up GTM account
+# - using both will skew your data (leave blank to not use at all)
+google_analytics:
+google_tag_manager: "GTM-NQZ5DVX"
+
+# Optional features
+animated:             false
+show_post_footers:    true
+show_social_icons:    true
+ajaxify_contact_form: false
+extended_fonts: false
+enable_anchorjs: false
+# Preview image for social media aka og:image and twitter:image
+post_preview_image: false
+
+# Disqus post comments
+# (leave blank to disable Disqus)
+disqus_shortname:
+
+# Social icons
+github_username: marduke182
+twitter_username: marduke182
+linkedin_username: marduke182
+medium_id:
+flattr_button:
+
+# Post sharing icons
+show_sharing_icons: true
+# Change to 'true' to enable individual icons
+share_twitter: true
+share_facebook: true
+
+text:
+  pagination:
+    newer: 'Newer'
+    older: 'Older'
+  share_buttons:
+    text:         'Share:'
+    twitter:      'Share on Twitter'
+    facebook:     'Share on Facebook'
+  post:
+    updated:        'Updated'
+    minute_read:    'minute read'
+    related_posts:  'Related Posts'
+  index:
+    coming_soon: 'Coming soon...'
+  contact:
+    email:    ''
+    content:  ''
+    subject:  'New submission!'
+    submit:   'Send'
+    ajax:
+      sending:  'sending..'
+      sent:     'Message sent!'
+      error:    'Error!'
+  og_locale: 'en_US'
+
+# Build settings
+markdown:     kramdown
+redcarpet:
+  extensions: ['smart', 'tables', 'with_toc_data']
+permalink: /:title
+paginate:     9
+sass:
+  style: compressed
+ampdir: amp
+plugins:
+  - jekyll-paginate
+  - jekyll-sitemap
+  - jekyll-assets
+  - amp-jekyll
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+  - deploy.sh
+
+defaults:
+  - scope:
+      path: 'build/'
+    values:
+      sitemap: false
+assets:
+  digest: true
+  sources:
+    - _assets/images/shared
+    - _assets/images/2018-01-08
+    - _assets/images/2018-01-15
+    - _assets/images/2018-01-22
+    - _assets/images/2018-02-23

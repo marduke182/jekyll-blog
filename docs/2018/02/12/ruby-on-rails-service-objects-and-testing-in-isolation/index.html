@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en" xml:lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Ruby on Rails Simple Service Objects and Testing in Isolation </title>
+    <link rel="dns-prefetch" href="//maxcdn.bootstrapcdn.com">
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Service Objects are not a silver bullet but they can take you a long way in modeling your Ruby on Rails app's domain logic. In this blog post, I will describe how I usually work with service object pattern in a structured way. I will also cover a simple testing in isolation with mocked services layer.">
+    <meta name="robots" content="all">
+    <meta name="author" content="Paweł Urbanek">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/styles.css?201802222159" type="text/css">
+
+    
+      <meta name="keywords" content="Ruby on Rails, JavaScript, full stack,g consultant, web development, remote developer, startup, performance, optimization">
+    
+
+    <link rel="canonical" href="https://pawelurbanek.com/2018/02/12/ruby-on-rails-service-objects-and-testing-in-isolation/">
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed for Paweł Urbanek - Web and Mobile Developer, Full Stack Blog" href="/feed.xml" />
+
+
+    <!-- Verifications -->
+    
+
+    <!-- Open Graph -->
+    <!-- From: https://github.com/mmistakes/hpstr-jekyll-theme/blob/master/_includes/head.html -->
+    <meta property="og:locale" content="en_US">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Ruby on Rails Simple Service Objects and Testing in Isolation ">
+    <meta property="og:description" content="Service Objects are not a silver bullet but they can take you a long way in modeling your Ruby on Rails app's domain logic. In this blog post, I will describe how I usually work with service object pattern in a structured way. I will also cover a simple testing in isolation with mocked services layer.">
+    <meta property="og:url" content="https://pawelurbanek.com/2018/02/12/ruby-on-rails-service-objects-and-testing-in-isolation/">
+    <meta property="og:site_name" content="Paweł Urbanek - Web and Mobile Developer, Full Stack Blog">
+    
+    <meta property="og:image" content="https://pawelurbanek.com/assets/rails-service-object-gear-00fca702cf4d691fd506ffd727dbaace1ece26354f18c96c644c4e7ac7ea747d.jpg">
+    
+
+
+    <!-- Twitter Card -->
+    
+      <meta name="twitter:card" content="summary_large_image">
+      <meta property="og:image:width" content="800">
+      <meta property="og:image:height" content="500">
+      <meta property="article:published_time" content="2018-02-12T10:00:05+01:00" />
+    
+
+    
+    <meta name="twitter:image" content="https://pawelurbanek.com/assets/rails-service-object-gear-00fca702cf4d691fd506ffd727dbaace1ece26354f18c96c644c4e7ac7ea747d.jpg">
+    
+
+    <meta name="twitter:site" content="@_pawurb" />
+    <meta name="twitter:creator" content="@_pawurb" />
+
+    <meta name="twitter:title" content="Ruby on Rails Simple Service Objects and Testing in Isolation" />
+    <meta name="twitter:description" content="Service Objects are not a silver bullet but they can take you a long way in modeling your Ruby on Rails app's domain logic. In this blog post, I will describe how I usually work with service object pattern in a structured way. I will also cover a simple testing in isolation with mocked services layer." />
+    <meta name="twitter:url" content="https://pawelurbanek.com/2018/02/12/ruby-on-rails-service-objects-and-testing-in-isolation/" />
+
+    <!-- Icons -->
+    <link rel="apple-touch-icon" sizes="57x57" href="/apple-touch-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/apple-touch-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/apple-touch-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/apple-touch-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/apple-touch-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png">
+    <link rel="icon" type="image/png" href="/favicon-192x192.png" sizes="192x192">
+    <link rel="icon" type="image/png" href="/favicon-160x160.png" sizes="160x160">
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96">
+    <link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16">
+    <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
+
+
+    
+    <script type="text/javascript">
+       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+       (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+       m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+       })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+       ga('create', 'UA-34244867-12', 'auto');
+       ga('send', 'pageview');
+    </script>
+    
+
+    
+<!-- Google Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "BlogPosting",
+    "mainEntityOfPage": {
+      "@type":"WebPage",
+      "@id":"https://pawelurbanek.com/2018/02/12/ruby-on-rails-service-objects-and-testing-in-isolation/"
+    },
+    "headline": "Ruby on Rails Simple Service Objects and Testing in Isolation",
+    "image": {
+      "@type": "ImageObject",
+      "url": "https://pawelurbanek.com/assets/rails-service-object-gear-00fca702cf4d691fd506ffd727dbaace1ece26354f18c96c644c4e7ac7ea747d.jpg",
+      "height": 500,
+      "width": 800
+    },
+    "datePublished": "2018-02-12",
+    "dateModified": "2018-02-12",
+    "author": {
+      "@type": "Person",
+      "name": "Paweł Urbanek"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "PabloWeb Paweł Urbanek",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://pawelurbanek.com/assets/pabloweb-69223ab6871fe2232fabdd00e23d420a15170da8a9644aee5f73a422067629c4.jpg",
+        "width": 600,
+        "height": 60
+      }
+    },
+    "description": "Service Objects are not a silver bullet but they can take you a long way in modeling your Ruby on Rails app's domain logic. In this blog post, I will describe how I usually work with service object pattern in a structured way. I will also cover a simple testing in isolation with mocked services layer.",
+    "keywords": ""
+  }
+  </script>
+
+
+</head>
+
+<body class="site">
+  
+
+  <div class="site-wrap">
+    <header class="site-header px2 px-responsive">
+  <div class="mt2 wrap">
+    <div class="measure">
+      <div class='site-title'>
+        <h1 class='author-name'>
+          <a class='main-title' href="https://pawelurbanek.com">Paweł Urbanek</a>
+        </h1>
+        <br>
+        <h2 class='blog-title'>
+          <a href="https://pawelurbanek.com" class='subtitle'>Full Stack Blog</a>
+        </h2>
+      </div>
+      <nav class="site-nav">
+        
+
+
+
+
+    
+
+    
+        <a class='theme-color' href="/">Home</a>
+    
+
+
+
+
+    
+
+    
+        <a class='theme-color' href="/about">About</a>
+    
+
+
+
+
+    
+
+    
+        <a class='theme-color' href="/contact">Contact</a>
+    
+
+
+
+
+        
+          <div class="social-icons">
+  <div class="social-icons-right">
+    
+      <a class="fa fa-github" href="https://github.com/pawurb" target="_blank"></a>
+    
+    
+      <a class="fa fa-twitter" href="https://twitter.com/_pawurb" target="_blank"></a>
+    
+  </div>
+  <div class="right">
+    
+  </div>
+</div>
+<div class="clearfix"></div>
+
+        
+      </nav>
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</header>
+
+
+    <div class="post p2 p-responsive wrap" role="main">
+      <div class="measure">
+        
+
+
+
+  
+    <link rel="amphtml" href="https://pawelurbanek.com/amp/2018/02/12/ruby-on-rails-service-objects-and-testing-in-isolation">
+  
+
+
+<div class="post-header mb2">
+  <h1>Ruby on Rails Simple Service Objects and Testing in Isolation</h1>
+  <span class="post-meta theme-color">Feb 12, 2018</span><br>
+  
+  <span class="post-meta small">
+  
+    5 minute read
+  
+  </span>
+</div>
+
+<article class="post-content">
+  <p><img class="center-image post-main-image" alt="Gears represent Rails Service objects" src="/assets/rails-service-object-gear-00fca702cf4d691fd506ffd727dbaace1ece26354f18c96c644c4e7ac7ea747d.jpg" /></p>
+
+<p>Service Objects are not a silver bullet but they can take you a long way in modeling your Rails app’s domain logic. In this blog post, I will describe how I usually work with service object pattern in a structured way. I will also cover testing in isolation with mocked services layer.</p>
+
+<p>I first read about service objects in a great blog post about <a href="https://codeclimate.com/blog/7-ways-to-decompose-fat-activerecord-models/" target="_blank">7 Patterns to Refactor Fat ActiveRecord Models</a>. Since then a new article about them pops up every now and then. I decided to add my two cents.</p>
+
+<h2 id="reasoning-behind-service-objects-in-rails-apps">Reasoning behind Service Objects in Rails apps</h2>
+
+<p>A service object is a way to encapsulate an app’s logic to prevent fat models and cluttered controllers. It is recommended that they should have only one public method. Sticking to this rule enforces you to follow a single responsibility principle and helps to avoid the trap of overcomplicating your services code.</p>
+
+<p>I usually follow the convention where a service object has only one public class method <code class="highlighter-rouge">call</code>. This method instantiates a new service instance and executes it. Let’s look at some code:</p>
+
+<p><code class="highlighter-rouge">app/services/web/user_login.rb</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Web</span><span class="o">::</span><span class="no">UserLogin</span>
+  <span class="nb">attr_reader</span> <span class="ss">:omniauth_data</span><span class="p">,</span> <span class="ss">:team_id</span>
+
+  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">omniauth_data</span><span class="p">,</span> <span class="n">team_id</span><span class="p">)</span>
+    <span class="vi">@omniauth_data</span> <span class="o">=</span> <span class="n">omniauth_data</span>
+    <span class="vi">@team_id</span> <span class="o">=</span> <span class="n">team_id</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">call</span><span class="p">(</span><span class="n">omniauth_data</span><span class="p">,</span> <span class="n">team_id</span><span class="p">)</span>
+    <span class="n">new</span><span class="p">(</span><span class="n">omniauth_data</span><span class="p">,</span> <span class="n">team_id</span><span class="p">).</span><span class="nf">call</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">call</span>
+    <span class="o">...</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></figure>
+
+<p>Because <a href="https://pawelurbanek.com/2018/01/08/productive-laziness-optimize-your-shell-workflow/">I am lazy</a> some time ago I created a simple gem. <a href="https://github.com/pawurb/smart_init" target="_blank">Smart Init</a> saves me some typing when creating service objects. This is how a previous example looks written with the help of my gem:</p>
+
+<p><code class="highlighter-rouge">app/services/web/user_login.rb</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Web</span><span class="o">::</span><span class="no">UserLogin</span>
+  <span class="kp">extend</span> <span class="no">SmartInit</span>
+
+  <span class="n">initialize_with</span> <span class="ss">:omniauth_data</span><span class="p">,</span> <span class="ss">:team_id</span>
+  <span class="n">is_callable</span>
+
+  <span class="k">def</span> <span class="nf">call</span>
+    <span class="o">...</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></figure>
+
+<p>It’s not only about avoiding boilerplate code but more about having a default scaffold for building services and saving yourself some thinking. Alternatively, you could use <code class="highlighter-rouge">Struct</code> but it does not check for a number of parameters provided in the initializer, exposes getters and instantiates unnecessary class instances.</p>
+
+<h2 id="mock-service-objects-in-controller-specs">Mock Service Objects in controller specs</h2>
+
+<p>Naming one public method <code class="highlighter-rouge">call</code> is an optimal solution. Not only because <code class="highlighter-rouge">UserAuthenticator#authenticate</code> is unnecessarily redundant, but it allows you to mock your services using a proc object. It comes super handy when you want to test other parts of your application in isolation from services layer.</p>
+
+<p>Let’s say that you want to test how your controller behaves depending on whether a payment operation was successful or not. In theory, your specs could execute the whole checkout process e.g. by using a <a href="https://github.com/vcr/vcr" target="_blank">VCR gem</a>. Unfortunately for any non-trivial flow, it could be difficult to simulate all possible edge cases in an integration test.</p>
+
+<p>Instead, you can use a simple proc object to simulate any outcome of running your services. Let’s take a look at an example controller and spec:</p>
+
+<p><code class="highlighter-rouge">app/controllers/web/subscriptions_controller.rb</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Web</span><span class="o">::</span><span class="no">SubscriptionsController</span> <span class="o">&lt;</span> <span class="no">Web</span><span class="o">::</span><span class="no">BaseController</span>
+  <span class="k">def</span> <span class="nf">create</span>
+    <span class="k">if</span> <span class="no">Subscription</span><span class="o">::</span><span class="no">Maker</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+      <span class="n">head</span> <span class="mi">201</span>
+    <span class="k">else</span>
+      <span class="n">head</span> <span class="mi">400</span>
+    <span class="k">end</span>
+  <span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+    <span class="no">ExceptionNotifier</span><span class="p">.</span><span class="nf">notify_exception</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    <span class="n">head</span> <span class="mi">500</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></figure>
+
+<p><code class="highlighter-rouge">spec/controllers/web/subscriptions_controller_spec.rb</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="nb">require</span> <span class="s1">'rails_helper'</span>
+
+<span class="n">describe</span> <span class="no">Web</span><span class="o">::</span><span class="no">SubscriptionsController</span> <span class="k">do</span>
+  <span class="n">describe</span> <span class="s2">"#create"</span> <span class="k">do</span>
+    <span class="n">let</span><span class="p">(</span><span class="ss">:params</span><span class="p">)</span> <span class="k">do</span>
+      <span class="o">...</span>
+    <span class="k">end</span>
+
+    <span class="n">context</span> <span class="s2">"payment successful"</span> <span class="k">do</span>
+      <span class="n">before</span> <span class="k">do</span>
+        <span class="n">allow</span><span class="p">(</span><span class="no">Subscription</span><span class="o">::</span><span class="no">Maker</span><span class="p">).</span><span class="nf">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:new</span><span class="p">)</span> <span class="p">{</span>
+          <span class="c1"># proc object, it responds to a 'call' method</span>
+          <span class="o">-&gt;</span> <span class="p">{</span> <span class="kp">true</span> <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="k">end</span>
+
+      <span class="n">it</span> <span class="s2">"returns a correct status code"</span> <span class="k">do</span>
+        <span class="n">post</span> <span class="ss">:create</span><span class="p">,</span> <span class="ss">params: </span><span class="n">params</span>
+        <span class="n">expect</span><span class="p">(</span><span class="n">response</span><span class="p">.</span><span class="nf">status</span><span class="p">).</span><span class="nf">to</span> <span class="n">eq</span> <span class="mi">201</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+
+    <span class="n">context</span> <span class="s2">"payment failed"</span> <span class="k">do</span>
+      <span class="n">before</span> <span class="k">do</span>
+        <span class="n">allow</span><span class="p">(</span><span class="no">Subscription</span><span class="o">::</span><span class="no">Maker</span><span class="p">).</span><span class="nf">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:new</span><span class="p">)</span> <span class="p">{</span>
+          <span class="o">-&gt;</span> <span class="p">{</span> <span class="kp">false</span> <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="k">end</span>
+
+      <span class="n">it</span> <span class="s2">"returns a correct status code"</span> <span class="k">do</span>
+        <span class="n">post</span> <span class="ss">:create</span><span class="p">,</span> <span class="ss">params: </span><span class="n">params</span>
+        <span class="n">expect</span><span class="p">(</span><span class="n">response</span><span class="p">.</span><span class="nf">status</span><span class="p">).</span><span class="nf">to</span> <span class="n">eq</span> <span class="mi">400</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+
+    <span class="n">context</span> <span class="s2">"something went really wrong"</span> <span class="k">do</span>
+      <span class="n">before</span> <span class="k">do</span>
+        <span class="n">allow</span><span class="p">(</span><span class="no">Subscription</span><span class="o">::</span><span class="no">Maker</span><span class="p">).</span><span class="nf">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:new</span><span class="p">)</span> <span class="p">{</span>
+          <span class="o">-&gt;</span> <span class="p">{</span>
+            <span class="k">raise</span> <span class="s2">"Unexpected error"</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="k">end</span>
+
+      <span class="n">it</span> <span class="s2">"returns a correct status code"</span> <span class="k">do</span>
+        <span class="n">post</span> <span class="ss">:create</span><span class="p">,</span> <span class="ss">params: </span><span class="n">params</span>
+        <span class="n">expect</span><span class="p">(</span><span class="n">response</span><span class="p">.</span><span class="nf">status</span><span class="p">).</span><span class="nf">to</span> <span class="n">eq</span> <span class="mi">500</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></figure>
+
+<p>As you can see not only can you mock returned values but also simulate any kind of side effect because of proc objects being callable chunks of code. Here I used it to raise a runtime exception, but it could be any code. It gives you a real flexibility in simulating edge cases without doing a complex data setup with fixtures/factories.</p>
+
+<h2 id="beyond-true-and-false-enums-for-control-flow">Beyond true and false; “Enums” for control flow</h2>
+
+<p>In the previous example, I used a single if/else statement to detect if an operation was successful and exception handling for critical edge cases. In practice, operation result is not always as simple as success or failure and you might need to handle more than 2 possible outcomes.</p>
+
+<p>I work mainly in Swift nowadays and one of the features I miss the most when I come back to Ruby are enums. I am not talking about database Rails enums here. A real enum is a variable which can have only predefined values and it is validated during a compile time.</p>
+
+<p>Obviously, there is no such thing as compile-time validation in Ruby, and the closest thing to enums I managed to come up with is an array of constants. You could use this technique to provide at least a minimal protection from typos if you would like your services to return different “status codes” as a result of their execution. Let’s take a look at an example:</p>
+
+<p><code class="highlighter-rouge">app/services/subscription/maker.rb</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Subscription</span><span class="o">::</span><span class="no">Maker</span>
+  <span class="kp">extend</span> <span class="no">SmartInit</span>
+
+  <span class="n">initialize_with</span> <span class="ss">:params</span>
+  <span class="n">is_callable</span>
+
+  <span class="no">RESULTS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="no">PAYMENT_SUCCESS</span> <span class="o">=</span> <span class="ss">:payment_success</span><span class="p">,</span>
+    <span class="no">INSUFFICIENT_FOUNDS</span> <span class="o">=</span> <span class="ss">:insufficient_founds</span><span class="p">,</span>
+    <span class="no">INVALID_CARD_DATA</span> <span class="o">=</span> <span class="ss">:invalid_card_data</span><span class="p">,</span>
+    <span class="no">GATEWAY_TIMEOUT</span> <span class="o">=</span> <span class="ss">:gateway_timeout</span>
+  <span class="p">]</span>
+
+  <span class="k">def</span> <span class="nf">call</span>
+    <span class="o">...</span>
+    <span class="k">return</span> <span class="no">PAYMENT_SUCCESS</span> <span class="k">if</span> <span class="n">sth</span>
+    <span class="k">return</span> <span class="no">INSUFFICIENT_FOUNDS</span> <span class="k">if</span> <span class="n">sth_else</span>
+    <span class="o">...</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></figure>
+
+<p>In the controller you can switch on a result of service execution:</p>
+
+<p><code class="highlighter-rouge">app/controllers/web/subscriptions_controller.rb</code></p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Web</span><span class="o">::</span><span class="no">SubscriptionsController</span> <span class="o">&lt;</span> <span class="no">Web</span><span class="o">::</span><span class="no">BaseController</span>
+  <span class="k">def</span> <span class="nf">create</span>
+    <span class="k">case</span> <span class="no">Subscription</span><span class="o">::</span><span class="no">Maker</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="k">when</span> <span class="no">Subscription</span><span class="o">::</span><span class="no">Maker</span><span class="o">::</span><span class="no">PAYMENT_SUCCESS</span>
+      <span class="o">...</span>
+    <span class="k">when</span> <span class="no">Subscription</span><span class="o">::</span><span class="no">Maker</span><span class="o">::</span><span class="no">INSUFFICIENT_FOUNDS</span>
+      <span class="o">...</span>
+    <span class="k">when</span> <span class="no">Subscription</span><span class="o">::</span><span class="no">Maker</span><span class="o">::</span><span class="no">INVALID_CARD_DATA</span>
+      <span class="o">...</span>
+    <span class="k">when</span> <span class="no">Subscription</span><span class="o">::</span><span class="no">Maker</span><span class="o">::</span><span class="no">GATEWAY_TIMEOUT</span>
+      <span class="o">...</span>
+    <span class="n">default</span>
+      <span class="k">raise</span> <span class="s2">"It should never happen! ☠☠☠"</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></figure>
+
+<p>As you can see because of how Ruby handles constant namespaces, you can access them directly and not necessarily through <code class="highlighter-rouge">RESULTS</code> array. It is a bit verbose but still better than tracking a typo bug for hours.</p>
+
+<h2 id="final-remarks">Final remarks</h2>
+
+<p>I hope that some of those tips would prove useful in how you work with services in your apps. I am open to suggestions on what could be improved in what I describe.</p>
+
+
+</article>
+
+
+  <div class="share-page">
+  <div class="share-links">
+    
+      <a class="fa fa-twitter" href="https://twitter.com/intent/tweet?text=Ruby+on+Rails+Simple+Service+Objects+and+Testing+in+Isolation&amp;url=https%3A%2F%2Fpawelurbanek.com%2F2018%2F02%2F12%2Fruby-on-rails-service-objects-and-testing-in-isolation%2F" rel="nofollow" target="_blank" title="Share on Twitter"></a>
+    
+    
+      <a class="fa fa-facebook" href="https://facebook.com/sharer.php?u=https%3A%2F%2Fpawelurbanek.com%2F2018%2F02%2F12%2Fruby-on-rails-service-objects-and-testing-in-isolation%2F" rel="nofollow" target="_blank" title="Share on Facebook"></a>
+    
+  </div>
+</div>
+
+
+
+
+  <div class="page-navigation">
+  
+    <a class="prev navigation-link" href="/2018/02/05/optimize-rails-performance-bottleneck-with-caching-and-rack-middleware/">&laquo; Optimize Rails Performance with Redis Caching and Rack Middleware</a>
+
+  
+  
+    <a class="right next navigation-link" href="/2018/02/16/seo-tips-for-technical-bloggers-and-programming-blogs-in-2018/"> SEO Tips for Programming Blogs and Technical Bloggers in 2018 &raquo;</a>
+  
+</div>
+
+<div class="post-footer">
+  <p>
+    Posted by Paweł Urbanek on Feb 12, 2018
+    <br>
+    Find me on <a class='link' target='_blank' href="https://twitter.com/_pawurb">Twitter</a> or <a class='link' target='_blank' href="https://github.com/pawurb">GitHub</a>.
+  </p>
+</div>
+
+<div class='center'>
+  <p>Subscribe if you want to be notified about new blog posts. I promise no spam.</p>
+    <div id="mc_embed_signup">
+  <form action="https://pawelurbanek.us17.list-manage.com/subscribe/post?u=185903fd35e2bd56525298439&amp;id=d8064f77fc" method="post" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form" class="validate" target="_blank" novalidate>
+      <div id="mc_embed_signup_scroll">
+
+  <div class="mc-field-group">
+    <input type="email" value="" name="EMAIL" class="required email input-form" placeholder='Email' id="mce-EMAIL">
+  </div>
+    <div id="mce-responses" class="clear">
+      <div class="response" id="mce-error-response" style="display:none"></div>
+      <div class="response" id="mce-success-response" style="display:none"></div>
+    </div>    <!-- real people should not fill this in and expect good things - do not remove this or risk form bot signups-->
+      <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_185903fd35e2bd56525298439_d8064f77fc" tabindex="-1" value=""></div>
+      <div class="clear"><input type="submit" value="Subscribe" name="subscribe" id="mc-embedded-subscribe" class="button"></div>
+      </div>
+  </form>
+  </div>
+
+</div>
+
+
+
+
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_shortname  = 'pawelurbanek';
+    var disqus_identifier = '/2018/02/12/ruby-on-rails-service-objects-and-testing-in-isolation';
+    var disqus_title      = "Ruby on Rails Simple Service Objects and Testing in Isolation";
+
+    (function() {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="center">
+  <div class="measure">
+    <small>
+      © Paweł Urbanek 2018
+    </small>
+  </div>
+</footer>
+
+
+  
+<!-- Fonts -->
+
+<link href='//fonts.googleapis.com/css?family=Merriweather:900,900italic,300,300italic' rel='stylesheet' type='text/css'>
+<link href='//fonts.googleapis.com/css?family=Lato:900,300' rel='stylesheet' type='text/css'>
+
+
+
+  <link href="//maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" rel="stylesheet">
+
+
+</body>
+</html>

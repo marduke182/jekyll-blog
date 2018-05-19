@@ -1,0 +1,16 @@
+<div class="social-icons">
+  <div class="social-icons-right">
+    {% if site.github_username %}
+      <a class="fa fa-github" href="https://github.com/{{ site.github_username }}" target="_blank"></a>
+    {% endif %}
+    {% if site.twitter_username %}
+      <a class="fa fa-twitter" href="https://twitter.com/{{ site.twitter_username }}" target="_blank"></a>
+    {% endif %}
+  </div>
+  <div class="right">
+    {% if site.flattr_button %}
+      {{ site.flattr_button }}
+    {% endif %}
+  </div>
+</div>
+<div class="clearfix"></div>
