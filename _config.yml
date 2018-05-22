@@ -11,7 +11,7 @@ date_format: "%b %-d, %Y"
 structured_date_format: '%Y-%m-%d'
 header_pages:
  - pages/home.html
- - pages/about.md
+ - pages/about.markdown
  - pages/contact.html
 
 # Google services
@@ -106,3 +106,4 @@ assets:
     - _assets/images/2018-01-15
     - _assets/images/2018-01-22
     - _assets/images/2018-02-23
+    - _assets/images/2018-05-20
