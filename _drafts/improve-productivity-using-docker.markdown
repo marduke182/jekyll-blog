@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Improve productivity using docker
+title: Improve productivity using Docker
 head_title: Improve productivity using docker [Docker]
 summary: I would like to share how I increase my productivity using docker to do common tasks.
 last_modified_at: 2018-05-20T17:04:00+01:00
@@ -13,17 +13,19 @@ next_amp:
 
 {% asset docker.jpg class="center-image post-main-image" alt="Docker logo" !width !height %}
 
-I didn't knew Docker one year ago, but I start using it in my company and few days later I used a lot for my personal projects this are my reasons.
+I didn't know Docker one year ago, but I start using it in my company and a few days later I used a lot for my personal projects this is my reasons.
 
-> I don't need to install everything in my machine
+> I don't need to install each language version on my machine
 
-I try a lot of technologies every day, this force me to install programs, database, etc. Only to stop using few days later and my pc, Docker allow me to test everything without installing everything. For example:
+I try a lot of technologies every day, this forces me to install programs, database, etc. Only to stop using a few days later and my pc, Docker allow me to test everything without installing everything. For example:
 
-If i want to try rails, i used to install ruby, database, and start coding, but now i open my console and get up a docker machine with all what i need
+If I want to do a python script, I had to install the right version of python and start coding, but now I open my console and get up a docker machine with all what I need
 
 {% highlight bash %}
-// Dockerfile
-docker run -it -v /path-src:/src bash
+// Execute the script directly
+docker run --rm --name python -v "$PWD":/usr/src/myapp -w /usr/src/myapp python:3 python script.py
+// Or enter in bash mode to install some package with pip, etc
+docker run -it --rm --name python -v "$PWD":/usr/src/myapp -w /usr/src/myapp python:3 /bin/bash
 {% endhighlight %}
  
 > I can test my application in complete isolation
@@ -56,17 +58,19 @@ services:
 
 > Anyone can run my project
 
-As programmer we must give enough information to allow collaborators contribute in our project. But sometimes a good documentation is not enough, because we are not handling a lot of variables, architectures, environments, etc.
+We must give enough information to allow collaborators contribute to our project. But sometimes a good documentation is not enough, because we are not handling a lot of variables, architectures, environments, etc.
  
  When we use Docker all projects run in the same way, *docker build* and *docker run*. Also we can publish our docker image in server likes *docker hub* to allow people run the project without having the code installed.
 
-> For larges company is common used to handle complicated deploys
+> For the larges company is commonly used to handle complicated deploys
 
 As you see, we can run and show how the application is connected between, with this information tools like **kubernetes** or **swarm** can do amazing go to handle deploys, scalability, etc.
 
-Swarm for example receive a docker compose and with few configurations you can set a cluster of servers that will handle your scalability, load balancing, service discover, deploys, etc. This is amazing is not weird DevOps guys love docker so much. 
+Swarm, for example, receive a docker compose and with few configurations you can set a cluster of servers that will handle your scalability, load balancing, service discovers, deploys, etc. This is amazing is not weird DevOps guys love docker so much. 
 
 Kubernetes does something similar but with his own configuration.
 
-## In conclusion
+## Conclusion
+
+I highly recommend to use it, you could love it or you simple will let it go, for experience, is hard to adapt and use it. I tried to bring this to my company and a I failed completely, developers did not see the value to the tool or never invest time to learn/implement. But is a good experiment, try it. 
 
