@@ -9,6 +9,7 @@ _config.gh-pages.yml
 build/
 .asset-cache
 .jekyll-cache
+vendor/
 
 
 .idea
