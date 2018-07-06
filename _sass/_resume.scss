@@ -1,0 +1,23 @@
+.only-print {
+  display: none;
+}
+
+.Resume-identification {
+  text-align: right;
+}
+
+@media print {
+  .only-print {
+    display: block;
+  }
+
+  .ResumePage {
+    .site-header, .site-footer {
+      display: none;
+    }
+    .post-header {
+      display: none;
+    }
+
+  }
+}
