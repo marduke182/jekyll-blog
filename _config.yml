@@ -102,6 +102,7 @@ assets:
   digest: true
   sources:
     - _assets/images/shared
+    - _assets/images/posts
     - _assets/images/2018-01-08
     - _assets/images/2018-01-15
     - _assets/images/2018-01-22
