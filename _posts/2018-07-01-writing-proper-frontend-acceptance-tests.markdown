@@ -6,24 +6,24 @@ date: 2018-02-23T10:00:00+01:00
 last_modified_at: 2018-02-01T22:10:10+01:00
 preview_image: signs.jpg
 keywords: e2e, frontend, puppeteer, jest, server stub, tests, acceptance, tdd
-summary: Writing acceptance test in frontend are not easy, you need to test behavior but E2E tests are too complicated to implement and not reliable, I'll show my current approach.
+summary: Writing acceptance test in the frontend is not easy, you need to test behavior but E2E tests are too complicated to implement and are not reliable, I'll show you my current approach.
 ---
 
 {% asset 2018-07-01-writing-proper-frontend-acceptance-tests.png class="center-image post-main-image" alt="Jekyll SEO tutorial represented by tools" !width !height %}
 
-The first thing you heard about TDD/BDD is this:
+The first thing you hear about TDD/BDD is this:
 
-1. Write your acceptance/feature test, should not pass.
-2. Write your unit test, should not pass.
-3. Write your code who make unit test written in the second step passes.
+1. Write your acceptance/feature test, all will fail.
+2. Write your unit tests, all will fail.
+3. Write code to make tests written in the second step pass.
 4. Refactor your code.
 5. Repeat step 2,3,4 until acceptance test goes green.
 
-When I saw this I said, "Oh TDD is so easy", but I started writing the acceptance and I have no idea how to start, if you work on a backend API, could be easy to do, just call the endpoint a wait for an expected response.
+When I saw this I said, "Oh TDD is so easy", but once I started writing the acceptance test I had no idea where to start, maybe it's easier if you work on a backend API, just calling the endpoint and expecting a certain response.
 
-So how I do it in a web application? what is our top-level API? The browser (HTML, CSS, javascript altogether) is what we are building, a user uses our application by clicking, typing, navigating, etc. so we must write our acceptance test interacting directly with the browser and wait for the expected behavior happen as a user does.
+So how to do it in a web application? what is our top-level API? The browser (HTML, CSS, javascript all together) is what we are building, a user interacts with our application by clicking, typing, navigating, etc. so we must write our acceptance test interacting directly with the browser and test for the expected behavior to happen.
 
-All this sound familiar, have you heard about selenium? E2E tests? Is the same but with server stubbing and without old selenium API.
+All this sounds familiar, have you heard about selenium? E2E tests? It's the same but with server stubbing and without the old selenium API.
 
 ## How to write E2E tests without a backend API
 
@@ -35,9 +35,9 @@ We need:
 
 ### Setting up jest with puppeteer
 
-I use **puppeteer** as a headless browser, it's developed by chromium team and offers us a complete API over chromium. We are using it because allows us to intercept any request made.
+I use **puppeteer** as a headless browser, it's developed by chromium team and offers a complete API over chromium. We are using it because allows us to intercept any request made.
 
-For the test environment, I  choose  **jest**, It has many benefits one of them seamless configuration and async test. To configure puppeteer, we need to setup few configuration files:
+For the test environment, I  choose  **jest**, It has many benefits, seamless configuration and async test in particular. To configure puppeteer, we need to setup a few configuration files:
 
 **globalSetup**
 ```javascript
@@ -60,7 +60,7 @@ module.exports = async function() {
 };
 ```
 
-We get up our browser and store web socket endpoint in a temp file. You will have noticed about the async function, this new configuration accepts an async function and waits until promise resolve.
+We start our browser and store web socket endpoint in a temp file. You may have noticed the async function, this new configuration accepts an async function and waits until a promise resolves.
 
 **globalTeardown**
 ```javascript
@@ -72,7 +72,7 @@ module.exports = async function() {
 };
 ```
 
-We closed our browser, sometimes I don't want to close the browser when I'm debugging.
+We close our browser, sometimes I don't want to close the browser when I'm debugging.
 
 **testEnvironment**
 ```javascript
@@ -91,11 +91,11 @@ class PuppeteerEnvironment extends NodeEnvironment {
 module.exports = PuppeteerEnvironment;
 ```
 
-Finally, I connect with the browser I already created and setup variables to be used in all my tests.
+Finally, I connect with the browser I already created and setup some variables to be used in all my tests.
 
 ### Server stubbing
 
-This is the most crucial part here, stubbing the serve is what difference **acceptance** from **e2e** tests, I was not looking for some fancy library, I wrote mine, you can see it here, you can register contracts and the library will intercept all request from puppeteer.
+This is the most crucial part, stubbing the server is what sets the difference between **acceptance** and **e2e** tests, I was not looking for some fancy library, I wrote mine, you can see it here, you can register contracts and the library will intercept all requests from puppeteer.
 
 
 *user.test.js*
@@ -116,13 +116,13 @@ test('should create an account', async () => {
 });
 ```
 
-This little example shows how you can use it. First, of all, you need to create a new instance of the server and intercept request from the given page, after this, each request in this page will be handled by the server.
+This little example shows how you can use it. First of all, you need to create a new instance of the server and intercept requests from the given page, after this, each request in this page will be handled by the server.
 
-Now you only have to design your API and create a contract, stub the server and write your unit test and real code. This separation from the backend gives you the freedom to develop new features without caring about backend implementation, storing or removing users from DB, etc.
+Now you only have to design your API and create a contract, stub the server and write your unit test and real code. This separation from the backend gives you the freedom to develop new features without caring about the backend implementation, storing or removing users from DB, etc.
 
 ### Page object
 
-Puppeteer API is amazing but wasn't made as an assert library, lucky me, It's very easy to implement each asserts you want to do, for this, I made a set of wrappers for each element, input, button, select, etc. This pattern is called *page object*, it's well known, helps you write cleaner tests by encapsulating information about the elements on your application page.
+Puppeteer API is amazing, however it wasn't made as an assert library, lucky me, It's very easy to implement each assert you may want to use. For this, I made a set of wrappers for each element, input, button, select, etc. This pattern is called *page object*, it's well known, and helps you write cleaner tests by encapsulating information about the elements on your application page.
 
 **Puppeteer utils**
 ```javascript
@@ -137,7 +137,7 @@ const input = (page, selector)  => {
   };
 };
 ```
-Everything start with a set of utils, after that we create the page
+Everything starts with a set of utils, after that we create the page
 
 ```javascript
 const createRegisterPage =  (page, host) => {
@@ -202,8 +202,8 @@ afterAll(async () => {
 ```
 
 ## Conclusion
-* This helps you to replicate any complicated state of your application, without interacting with external services.
-* You can run this tests in production without affecting your database, statistics, etc.
-* Are fast and more reliable than normal E2E tests.
-* Helps you to do a proper TDD working process.
-* Not all is perfect, the Achilles heel here are the contracts, if you integrate this solution with contract testing like Pact, you can assure high-quality frontend product.
+* This approachs helps you replicate any complicated state of your application, without interacting with external services.
+* You can run these tests in production without affecting your database, statistics, etc.
+* Faster and more reliable than normal E2E tests.
+* Helps you in implementing a proper TDD working process.
+* Not all is perfect, the Achilles heel here are the contracts, if you integrate this solution with a contract testing library like Pact, you can assure a high-quality frontend product.
