@@ -11,7 +11,6 @@ date_format: "%b %-d, %Y"
 structured_date_format: '%Y-%m-%d'
 header_pages:
  - pages/home.html
- - pages/about.md
  - pages/contact.html
  - pages/resume.html
 
