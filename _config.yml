@@ -6,7 +6,7 @@ description: my thoughts
 subtitle: Inside a developer's head
 keywords: your, keywords, seperated, by, commas
 baseurl:     ""
-url:         "https://blog.jquintanab.com/"
+url:         "https://jquintanab.com/"
 date_format: "%b %-d, %Y"
 structured_date_format: '%Y-%m-%d'
 header_pages:

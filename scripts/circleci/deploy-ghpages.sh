@@ -27,7 +27,7 @@ git rm -rf .
 
 # copy over or recompile the new site
 cp -a ../_site/. .
-echo "blog.jquintanab.com" > CNAME
+echo "jquintanab.com" > CNAME
 
 # stage any changes and new files
 git add -A

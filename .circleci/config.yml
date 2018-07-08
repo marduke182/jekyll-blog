@@ -6,17 +6,33 @@ jobs:
       - image: circleci/ruby:2.5.1
     steps:
       - checkout
-      - run: gem install bundler
+      - add_ssh_keys:
+          fingerprints:
+            - "90:cf:85:55:c5:25:71:dc:31:cd:1a:4c:a6:dc:38:47"
+      # Which version of bundler?
       - run:
-          name: Running bundle install
-          command: bundle check --path=vendor/bundle || bundle install --path=vendor/bundle --jobs=4 --retry=3
+          name: Which bundler?
+          command: bundle -v
+      # Restore bundle cache
+      - restore_cache:
+          keys:
+            - rails-demo-bundle-v2-{{ checksum "Gemfile.lock" }}
+            - rails-demo-bundle-v2-
+      - run:
+          name: Bundle Install
+          command: bundle check --path=vendor/bundle || bundle install --path=vendor/bundle
+      # Store bundle cache
+      - save_cache:
+          key: rails-demo-bundle-v2-{{ checksum "Gemfile.lock" }}
+          paths:
+            - vendor/bundle
       - run:
           name: Making build
-          command: jekyll build
+          command: bundle exec jekyll build
       - deploy:
-          name: Uploading staging build to Amazon S3
+          name: Pushing into marduke182.github.io repo
           command: |
-            aws s3 sync --delete ./build s3://jquintanab.com --region eu-west-2
+            ./scripts/circleci/deploy-ghpages.sh
 workflows:
     version: 2
     build_and_deploy:
