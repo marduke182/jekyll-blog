@@ -3,13 +3,9 @@ jobs:
   build:
     working_directory: ~/blog
     docker:
-      - image: circleci/ruby:2.5.0
+      - image: circleci/ruby:2.5.1
     steps:
       - checkout
-      - add_ssh_keys:
-          fingerprints:
-            - "90:cf:85:55:c5:25:71:dc:31:cd:1a:4c:a6:dc:38:47"
-
       - run: gem install bundler
       - run:
           name: Running bundle install
@@ -18,9 +14,9 @@ jobs:
           name: Making build
           command: jekyll build
       - deploy:
-          name: Uploading static resource to gh page
+          name: Uploading staging build to Amazon S3
           command: |
-            ./scripts/circleci/deploy-ghpages.sh
+            aws s3 sync --delete ./build s3://jquintanab.com --region eu-west-2
 workflows:
     version: 2
     build_and_deploy:
