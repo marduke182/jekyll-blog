@@ -2,9 +2,9 @@
 layout: post
 title: Writing proper web acceptance tests
 head_title: Web Acceptance Tests [Introduction]
-date: 2018-02-23T10:00:00+01:00
-last_modified_at: 2018-02-01T22:10:10+01:00
-preview_image: signs.jpg
+date: 2018-07-08T10:00:00+01:00
+last_modified_at: 2018-07-08T10:40:10+01:00
+preview_image: 2018-07-01-writing-proper-frontend-acceptance-tests.png
 keywords: e2e, frontend, puppeteer, jest, server stub, tests, acceptance, tdd
 summary: Writing acceptance test in the frontend is not easy, you need to test behavior but E2E tests are too complicated to implement and are not reliable, I'll show you my current approach.
 ---
@@ -13,11 +13,12 @@ summary: Writing acceptance test in the frontend is not easy, you need to test b
 
 The first thing you hear about TDD/BDD is this:
 
-1. Write your acceptance/feature test, all will fail.
-2. Write your unit tests, all will fail.
-3. Write code to make tests written in the second step pass.
+
+1. Write a failing acceptance/feature test.
+2. Write a failing unit test.
+3. Make the unit test pass.
 4. Refactor your code.
-5. Repeat step 2,3,4 until acceptance test goes green.
+5. Repeat step 2,3,4 until acceptance/feature test pass.
 
 When I saw this I said, "Oh TDD is so easy", but once I started writing the acceptance test I had no idea where to start, maybe it's easier if you work on a backend API, just calling the endpoint and expecting a certain response.
 
