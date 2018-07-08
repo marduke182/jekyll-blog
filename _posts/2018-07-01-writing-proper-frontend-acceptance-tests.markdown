@@ -96,7 +96,7 @@ Finally, I connect with the browser I already created and setup some variables t
 
 ### Server stubbing
 
-This is the most crucial part, stubbing the server is what sets the difference between **acceptance** and **e2e** tests, I was not looking for some fancy library, I wrote mine, you can see it here, you can register contracts and the library will intercept all requests from puppeteer.
+This is the most crucial part, stubbing the server is what sets the difference between **acceptance** and **e2e** tests, I was not looking for some fancy library, I wrote mine, you can see it [here](https://github.com/marduke182/baird/tree/master/packages/baird-server), you can register contracts and the library will intercept all requests from puppeteer.
 
 
 *user.test.js*
@@ -138,7 +138,7 @@ const input = (page, selector)  => {
   };
 };
 ```
-Everything starts with a set of utils, after that we create the page
+Everything starts with a set of [utils](https://github.com/marduke182/baird/tree/master/packages/baird-page-objects), after that we create the page
 
 ```javascript
 const createRegisterPage =  (page, host) => {
@@ -202,9 +202,21 @@ afterAll(async () => {
 });
 ```
 
+For more info:
+
+ [https://github.com/marduke182/e2e-boilerplate](https://github.com/marduke182/e2e-boilerplate)
+
+ [https://github.com/marduke182/baird](https://github.com/marduke182/baird)
+
 ## Conclusion
-* This approachs helps you replicate any complicated state of your application, without interacting with external services.
+* This approach helps you replicate any complicated state of your application, without interacting with external services.
 * You can run these tests in production without affecting your database, statistics, etc.
 * Faster and more reliable than normal E2E tests.
 * Helps you in implementing a proper TDD working process.
 * Not all is perfect, the Achilles heel here are the contracts, if you integrate this solution with a contract testing library like Pact, you can assure a high-quality frontend product.
+
+## Resources
+
+ [https://github.com/marduke182/e2e-boilerplate](https://github.com/marduke182/e2e-boilerplate)
+
+ [https://github.com/marduke182/baird](https://github.com/marduke182/baird)
