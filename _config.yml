@@ -4,9 +4,9 @@ email: jrqb182@gmail.com
 author:      Jesús Quintana
 description: my thoughts
 subtitle: Inside a developer's head
-keywords: your, keywords, seperated, by, commas
+keywords: blog, react, javascript, software, code, functional, tdd, tests
 baseurl:     ""
-url:         "https://jquintanab.com/"
+url:         "https://jquintanab.com"
 date_format: "%b %-d, %Y"
 structured_date_format: '%Y-%m-%d'
 header_pages:
