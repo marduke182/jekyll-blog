@@ -13,6 +13,8 @@ header_pages:
  - pages/home.html
  - pages/contact.html
  - pages/resume.html
+highlighter: none
+
 
 # Google services
 google_verification:
