@@ -202,12 +202,6 @@ afterAll(async () => {
 });
 ```
 
-For more info:
-
- [https://github.com/marduke182/e2e-boilerplate](https://github.com/marduke182/e2e-boilerplate)
-
- [https://github.com/marduke182/baird](https://github.com/marduke182/baird)
-
 ## Conclusion
 * This approach helps you replicate any complicated state of your application, without interacting with external services.
 * You can run these tests in production without affecting your database, statistics, etc.
