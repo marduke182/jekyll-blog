@@ -2,13 +2,12 @@
 layout: post
 title: My Approach to do Unit Test in React
 head_title: My Approach to do Unit Test in React [Opinionated]
-preview_image: react-jest.png
+preview_image: react-unit-testing.jpg
 keywords: jest, enzyme, react, test, unit
-summary: 
-prev_amp:
-  url: 
-  title: 
+summary: Start to do tests is not easy, but if you are trying to do TDD and improving your code quality or velocity is a must. Doing test doesn't make you a faster developer but helps you a lot to maintain the code and you will have the confidence to do refactor and new features very fast. 
 ---
+
+{% asset react-unit-testing.jpg class="center-image post-main-image" alt="React Unit Testing" !width !height %}
 
 Start to do tests is not easy, but if you are trying to do TDD and improving your code quality or velocity is a must. Doing test doesn't make you a faster developer but helps you a lot to maintain the code and you will have the confidence to do refactor and new features very fast.
 
