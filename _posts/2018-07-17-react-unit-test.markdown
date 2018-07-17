@@ -2,6 +2,8 @@
 layout: post
 title: My Approach to do Unit Test in React
 head_title: My Approach to do Unit Test in React [Opinionated]
+date: 2018-07-17T10:00:00+01:00
+last_modified_at: 2018-07-17T10:40:10+01:00
 preview_image: react-unit-testing.jpg
 keywords: jest, enzyme, react, test, unit
 summary: Start to do tests is not easy, but if you are trying to do TDD and improving your code quality or velocity is a must. Doing test doesn't make you a faster developer but helps you a lot to maintain the code and you will have the confidence to do refactor and new features very fast. 
@@ -125,8 +127,8 @@ Now that you know the purpose of the test, so let's start writing the assertion.
 
 ```javascript
 test('should create an account after add email, password and click continuar', () => {
-      // 1. assert
-    expect(onCreate)...
+  // 1. assert
+  expect(onCreate)...
 })
 ```
 
@@ -144,13 +146,13 @@ So now what are the actions that make the assertion valid? This is called **acts
 
 ```javascript
 test('should create an account after add email, password and click continuar', () => {
-      // 2. acts
-    email.simulate('change', ...);
-    password.simulate('change', ...);
-    button.simulate('click', ...);
-    
-    // 1. assert
-    expect(onCreate)...
+  // 2. acts
+  email.simulate('change', ...);
+  password.simulate('change', ...);
+  button.simulate('click', ...);
+  
+  // 1. assert
+  expect(onCreate)...
 })
 ```
 
@@ -166,16 +168,16 @@ And finally, what does it mean email, password, and button? we need to **arrange
 
 ```javascript
 test('should create an account after add email, password and click continuar', () => {
-    // 3. arrange
-    const { email, password, button } = setup();
-    
-    // 2. acts
-    email.simulate('change', ...);
-    password.simulate('change', ...);
-    button.simulate('click', ...);
-    
-    // 1. assert
-    expect(onCreate)...
+  // 3. arrange
+  const { email, password, button } = setup();
+  
+  // 2. acts
+  email.simulate('change', ...);
+  password.simulate('change', ...);
+  button.simulate('click', ...);
+  
+  // 1. assert
+  expect(onCreate)...
 })
 ```
 
@@ -191,27 +193,29 @@ Let's rewrite our first example following this new concepts:
 function setup(props = {}) {
   const wrapper = shallow(<CreateAccount {...props} />);
     
-    const createAccount = {
-        wrapper,
-        get email() { return wrapper.find('input[name="email"]')},
+  const createAccount = {
+    wrapper,
+    get email() { return wrapper.find('input[name="email"]')},
     get password() { return wrapper.find('input[name="password"]')},
     get button() { return wrapper.find('input[name="password"]')},
+    
     typeEmail(value) {
       const email = createAccount.email;
       email.value = email;
       email.simulate('change', email)
-        },
+    },
     typePassword(value) {
       const password = createAccount.password;
       password.value = value;
       password.simulate('change', password)
-        }
-    };
-    return createAccount;
+    }
+  };
+    
+  return createAccount;
 }
 
 test('should create an account after add email, password and click continuar', async () => {
-    const onCreate = jest.fn();
+  const onCreate = jest.fn();
   const createAccount = setup({ onCreate });
 
   createAccount.typeEmail(johnDoeEmail);
