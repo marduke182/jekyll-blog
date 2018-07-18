@@ -6,11 +6,12 @@ date: 2018-07-17T10:00:00+01:00
 last_modified_at: 2018-07-17T10:40:10+01:00
 preview_image: react-unit-testing.jpg
 keywords: jest, enzyme, react, test, unit
-summary: Start to do tests is not easy, but if you are trying to do TDD and improving your code quality or velocity is a must. Doing test doesn't make you a faster developer but helps you a lot to maintain the code and you will have the confidence to do refactor and new features very fast. 
+summary: Starting with test is not easy, but if you are trying to do TDD while improving your code quality and/or speed it's a must. Having a test discipline doesn't make you a faster developer but it helps a lot in maintaining the code and empowers you with the confidence to perform refactors and implement new features very fast. 
 ---
 
 {% asset react-unit-testing.jpg class="center-image post-main-image" alt="React Unit Testing" !width !height %}
-Starting with testing is not easy, but if you are trying to do TDD while improving your code quality and/or speed it's a must. Having a test discipline doesn't make you a faster developer but it helps a lot in maintaining the code and empowers you with the confidence to perform refactors and implement new features very fast.
+
+Starting with test is not easy, but if you are trying to do TDD while improving your code quality and/or speed it's a must. Having a test discipline doesn't make you a faster developer but it helps a lot in maintaining the code and empowers you with the confidence to perform refactors and implement new features very fast.
 
 Writing tests in new technologies has its challenges, however, there are a lot of best practices to make it easy to do on react, let me explain it.
 
