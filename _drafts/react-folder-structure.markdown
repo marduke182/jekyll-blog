@@ -40,4 +40,4 @@ auth
 
 You must have noticed that I am using the *components*/*containers* pattern here, for me a *container* is a **component connected to redux store, execute I/O operations to pass the properties needed for other components**. Why do I create another folder? I want to identifiy what components contains the business logic to react fast to changes. In some way having this folder make you think twice to connect a component to the store.
 
-> Tip: Having unidentified components connected to store increase project complexity, performance and reduce reusability. 
+> Tip: Having unidentified components doing business logic increase project complexity, performance and reduce reusability. 
