@@ -33,7 +33,7 @@ You can do tests **without Enzyme**, that's a fact, likewise, you can do a web a
 
 For example, this is a test with test utils:
 
-```javascript
+```jsx
 test('should create account', async () => {
   const createAccount = ReactTestUtils.renderIntoDocument(
     <CreateAccount onCreate={onCreate} />,
@@ -69,7 +69,7 @@ test('should create account', async () => {
 
 And can be rewritten to this using enzyme:
 
-```javascript
+```jsx
 test('should create an account with enzyme', async () => {
   const createAccount = shallow(<CreateAccount onCreate={onCreate} />);
 
@@ -117,7 +117,7 @@ So in conclusion, use shallow for **unit testing** and mount for **integration t
 
 Let's start writing the test, the first part is easy to write, the name, keep in mind the name should express the thing you want to assert in a clear, concise way, for example:
 
-```javascript
+```jsx
 test('should create an account after adding email, password and clicking continue', () => {})
 ```
 
@@ -125,7 +125,7 @@ test('should create an account after adding email, password and clicking continu
 
 Now that you know the purpose of the test, let's start writing the assertion.
 
-```javascript
+```jsx
 test('should create an account after adding email, password and clicking continue', () => {
       // 1. assert
     expect(onCreate)...
@@ -144,7 +144,7 @@ In React the assertion could be summarized in three things:
 
 So now what are the actions that make the assertion valid? This is called **acts**,
 
-```javascript
+```jsx
 test('should create an account after adding email, password and clicking continue', () => {
       // 2. acts
     email.simulate('change', ...);
@@ -166,7 +166,7 @@ React behaviors are specific and can only trigger with a few actions,
 
 And finally, what does it mean email, password, and button? we need to **arrange** our test and prepare all the required components, functions, etc. beforehand 
 
-```javascript
+```jsx
 test('should create an account after adding email, password and clicking continue', () => {
     // 3. arrange
     const { email, password, button } = setup();
@@ -181,7 +181,7 @@ test('should create an account after adding email, password and clicking continu
 })
 ```
 
-We can implement this in many ways, but the one that helps me more is using a **setup function**. The idea behind a setup function is to put all the common taskts in one place, like a.shallow rendering/mounting the components, b.finding components, etc. This makes the configuration  explicit and cleans up boilerplate from the actual tests.
+We can implement this in many ways, but the one that helps me more is using a **setup function**. The idea behind a setup function is to put all the common tasks in one place, like a.shallow rendering/mounting the components, b.finding components, etc. This makes the configuration  explicit and cleans up boilerplate from the actual tests.
 
 Remember, the order is very important when you write your test (assert, act, arrange), it gives you perspective and focuses on what you are testing.
 
@@ -189,7 +189,7 @@ Remember, the order is very important when you write your test (assert, act, arr
 
 Let's rewrite our first example following this new concepts:
 
-```javascript
+```jsx
 function setup(props = {}) {
   const wrapper = shallow(<CreateAccount {...props} />);
     
@@ -201,7 +201,7 @@ function setup(props = {}) {
     
     typeEmail(value) {
       const email = createAccount.email;
-      email.value = email;
+      email.value = value;
       email.simulate('change', email)
         },
     typePassword(value) {
@@ -213,7 +213,7 @@ function setup(props = {}) {
     return createAccount;
 }
 
-test('should create an account after add email, password and click continuar', async () => {
+test('should create an account after add email, password and click continue', async () => {
   const onCreate = jest.fn();
   const createAccount = setup({ onCreate });
 
