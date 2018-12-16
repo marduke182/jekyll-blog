@@ -9,5 +9,5 @@ gem "jekyll-sitemap", "~> 1.2.0"
 gem 'jekyll-compose', "~> 0.8.0", group: [:jekyll_plugins]
 
 
-ruby '2.5.1'
+ruby '2.5.3'
 
